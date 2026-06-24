@@ -1,0 +1,11 @@
+[phases.setup]
+nixPkgs = ["nodejs_20"]
+
+[phases.install]
+cmds = ["npm install -g pnpm && pnpm install --filter api..."]
+
+[phases.build]
+cmds = ["echo 'no build step needed'"]
+
+[start]
+cmd = "node --import tsx/esm src/index.ts"
