@@ -20,14 +20,16 @@ export function IngestForm({ siteId, token, defaultUrl }: Props) {
 
   async function pollUntilDone(ingestId: string) {
     const start = Date.now();
-    while (Date.now() - start < 120_000) {
-      await new Promise(r => setTimeout(r, 2000));
+    const TIMEOUT = 15 * 60 * 1000; // 15 minutes
+    while (Date.now() - start < TIMEOUT) {
+      await new Promise(r => setTimeout(r, 3000));
       try {
         const res = await fetch(`${API}/api/sites/${siteId}/ingest/${ingestId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (res.ok) {
           const job = await res.json() as { status: string; pagesDiscovered: number };
+          const elapsed = Math.round((Date.now() - start) / 1000);
           if (job.status === 'complete') {
             setStatus('done');
             setMessage(`Done — ${job.pagesDiscovered} page(s) discovered.`);
@@ -39,11 +41,14 @@ export function IngestForm({ siteId, token, defaultUrl }: Props) {
             setMessage('Ingest failed on the server.');
             return;
           }
+          if (job.status === 'running') {
+            setMessage(`Crawling… ${job.pagesDiscovered} pages so far (${elapsed}s)`);
+          }
         }
       } catch { /* keep polling */ }
     }
     setStatus('error');
-    setMessage('Timed out waiting for ingest.');
+    setMessage('Timed out after 15 minutes.');
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -90,7 +95,6 @@ export function IngestForm({ siteId, token, defaultUrl }: Props) {
           value={depth}
           onChange={(e) => setDepth(Number(e.target.value))}
           min={0}
-          max={5}
           className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
         />
       </div>
