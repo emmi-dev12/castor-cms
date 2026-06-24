@@ -98,6 +98,7 @@ data/
 | `src/ingest/crawler.ts` | Puppeteer crawler; uses `domcontentloaded` (not `networkidle2`) for speed |
 | `src/ingest/slot-id.ts` | SHA-256 slot IDs + 3-layer fallback re-identification |
 | `src/ingest/template.ts` | Strips content → `{{slot:ID}}` placeholders; immutable store |
+| `src/ingest/template.ts` | `storeTemplate`/`loadTemplate` — async; uses MongoDB when connected, filesystem otherwise |
 | `src/publish/adapters.ts` | `DeployAdapter` interface + `VercelAdapter` (CLI) + `RenderAdapter` |
 | `src/ai/provider.ts` | Anthropic / OpenRouter; keys from runtime settings only |
 | `src/routes/ingest.ts` | POST returns real UUID ingestId immediately; job runs in background; GET polls status |
