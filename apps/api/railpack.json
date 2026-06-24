@@ -1,0 +1,8 @@
+{
+  "start": {
+    "command": "node --import tsx/esm src/index.ts"
+  },
+  "install": {
+    "command": "npm install -g tsx && npm install --ignore-scripts"
+  }
+}
