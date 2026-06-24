@@ -217,6 +217,25 @@ router.post('/:pageId/verify-slots', requireOwner, async (req: AuthRequest, res)
   res.json(report);
 });
 
+// GET /api/sites/:siteId/pages/:pageId/template-html — rendered template for preview
+router.get('/:pageId/template-html', requireClientOrOwner, async (req: AuthRequest, res) => {
+  const { siteId, pageId } = req.params as { siteId: string; pageId: string };
+  const storage = await getStorage();
+  const [page, site] = await Promise.all([
+    storage.getPage(siteId, pageId),
+    storage.getSite(siteId),
+  ]);
+  if (!page || !site) { res.status(404).json({ error: 'Not found' }); return; }
+  try {
+    const { renderStaticPage } = await import('../publish/renderer.js');
+    const html = await renderStaticPage(page, site.designTokens);
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
 // DELETE /api/sites/:siteId/pages/:pageId (owner only)
 router.delete('/:pageId', requireOwner, async (req, res) => {
   const { siteId, pageId } = req.params as { siteId: string; pageId: string };
