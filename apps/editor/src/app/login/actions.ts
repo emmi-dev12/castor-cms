@@ -26,8 +26,8 @@ export async function clientLoginAction(formData: FormData) {
     const { token } = await api.auth.clientLogin(siteId, password);
     await setSession(token);
   } catch (err) {
-    const msg = err instanceof ApiError ? err.message : 'Login failed';
-    redirect(`/login?siteId=${siteId}&error=${encodeURIComponent(msg)}`);
+    const msg = err instanceof ApiError ? err.message : 'Incorrect password';
+    redirect(`/editor/${siteId}?error=${encodeURIComponent(msg)}`);
   }
   redirect(`/editor/${siteId}`);
 }

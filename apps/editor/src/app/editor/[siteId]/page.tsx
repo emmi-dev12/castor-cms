@@ -1,46 +1,132 @@
-import Link from 'next/link';
-import { requireAnySession } from '@/lib/auth';
-import { api } from '@/lib/api';
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
+import { CastorLogo } from '@/components/CastorLogo';
+import { clientLoginAction } from '@/app/login/actions';
+import { api } from '@/lib/api';
+import { decodeToken } from '@/lib/auth';
+
+const API = process.env['API_URL'] ?? process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3000';
 
 interface Props {
   params: Promise<{ siteId: string }>;
+  searchParams: Promise<{ error?: string; expired?: string }>;
 }
 
-export default async function SiteEditorIndexPage({ params }: Props) {
+async function getSitePublic(siteId: string): Promise<{ name: string } | null> {
+  try {
+    const res = await fetch(`${API}/api/sites/${siteId}/public`, { cache: 'no-store' });
+    if (!res.ok) return null;
+    return res.json() as Promise<{ name: string }>;
+  } catch {
+    return null;
+  }
+}
+
+export default async function EditorLandingPage({ params, searchParams }: Props) {
   const { siteId } = await params;
-  const { token, payload } = await requireAnySession();
+  const { error, expired } = await searchParams;
 
-  if (payload.role === 'client' && payload.siteId !== siteId) redirect('/login');
-
-  const pages = await api.pages.list(siteId, token).catch(() => []);
-  const activePages = pages.filter((p) => p.status === 'active');
-
-  // Auto-redirect if only one page
-  if (activePages.length === 1) {
-    redirect(`/editor/${siteId}/${activePages[0].pageId}`);
+  // If already logged in with the right scope, go straight to pages
+  const cookieStore = await cookies();
+  const rawToken = cookieStore.get('cms_token')?.value;
+  if (rawToken) {
+    const payload = decodeToken(rawToken);
+    if (payload && payload.exp > Math.floor(Date.now() / 1000)) {
+      if (payload.role === 'owner' || payload.siteId === siteId) {
+        const pages = await api.pages.list(siteId, rawToken).catch(() => []);
+        const active = pages.filter((p) => p.status === 'active');
+        if (active.length === 1) redirect(`/editor/${siteId}/${active[0].pageId}`);
+        if (active.length > 1) redirect(`/editor/${siteId}/pages`);
+      }
+    }
   }
 
+  const site = await getSitePublic(siteId);
+
   return (
-    <main className="min-h-screen bg-gray-950 text-white">
-      <header className="border-b border-gray-800 px-6 py-4">
-        <h1 className="text-lg font-semibold">Select a Page to Edit</h1>
-      </header>
-      <div className="max-w-2xl mx-auto px-6 py-8 space-y-3">
-        {activePages.length === 0 ? (
-          <p className="text-gray-500 text-sm text-center py-12">No active pages found.</p>
-        ) : (
-          activePages.map((page) => (
-            <Link
-              key={page.pageId}
-              href={`/editor/${siteId}/${page.pageId}`}
-              className="block bg-gray-900 border border-gray-800 hover:border-gray-700 rounded-xl px-5 py-4 transition-colors"
-            >
-              <p className="font-medium">{page.title}</p>
-              <p className="text-gray-500 text-sm mt-0.5">{page.url}</p>
-            </Link>
-          ))
+    <main className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden"
+      style={{ background: 'var(--bg)' }}>
+
+      {/* Background geometry */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[1px]"
+          style={{ background: 'linear-gradient(90deg, transparent, var(--border-2), transparent)' }} />
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[1px]"
+          style={{ background: 'linear-gradient(90deg, transparent, var(--border-2), transparent)' }} />
+        <div className="absolute top-1/2 -translate-y-1/2 h-[400px] w-[1px]"
+          style={{ background: 'linear-gradient(180deg, transparent, var(--border), transparent)', left: '15%' }} />
+        <div className="absolute top-1/2 -translate-y-1/2 h-[400px] w-[1px]"
+          style={{ background: 'linear-gradient(180deg, transparent, var(--border), transparent)', right: '15%' }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full opacity-[0.04]"
+          style={{ background: 'radial-gradient(circle, var(--accent) 0%, transparent 70%)' }} />
+      </div>
+
+      <div className="relative w-full max-w-[380px] animate-fade-up">
+
+        <div className="flex flex-col items-center mb-10">
+          <CastorLogo size={48} variant="mark" className="mb-4" />
+          {site ? (
+            <>
+              <h1 className="text-xl font-display font-semibold tracking-tight" style={{ color: 'var(--text)' }}>
+                {site.name}
+              </h1>
+              <p className="text-sm mt-1.5 text-center" style={{ color: 'var(--text-3)' }}>
+                Enter your password to access your website editor.
+              </p>
+            </>
+          ) : (
+            <p className="text-sm" style={{ color: 'var(--red)' }}>Site not found.</p>
+          )}
+        </div>
+
+        {expired && (
+          <div className="mb-4 rounded-lg px-4 py-3 text-sm animate-fade-in"
+            style={{ background: 'var(--accent-dim)', border: '1px solid rgba(232,168,40,0.2)', color: 'var(--accent)' }}>
+            Your session expired — please sign in again.
+          </div>
         )}
+        {error && (
+          <div className="mb-4 rounded-lg px-4 py-3 text-sm animate-fade-in"
+            style={{ background: 'var(--red-dim)', border: '1px solid rgba(240,112,112,0.2)', color: 'var(--red)' }}>
+            {error}
+          </div>
+        )}
+
+        {site && (
+          <div className="rounded-xl p-7"
+            style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              boxShadow: '0 24px 64px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.03) inset',
+            }}>
+            <form action={clientLoginAction} className="space-y-4">
+              <input type="hidden" name="siteId" value={siteId} />
+              <div>
+                <label className="block text-xs mb-2 tracking-wide" style={{ color: 'var(--text-3)' }}>
+                  PASSWORD
+                </label>
+                <input
+                  type="password"
+                  name="password"
+                  required
+                  autoFocus
+                  placeholder="Your site password"
+                  className="w-full rounded-lg px-4 py-3 text-sm outline-none transition-all duration-150 focus-accent"
+                  style={{ background: 'var(--surface-2)', border: '1px solid var(--border-2)', color: 'var(--text)' }}
+                />
+              </div>
+              <button type="submit"
+                className="w-full rounded-lg py-3 font-medium text-sm transition-all duration-150 hover-accent"
+                style={{ background: 'var(--accent)', color: '#0A0808' }}>
+                Open Editor
+              </button>
+            </form>
+          </div>
+        )}
+
+        <p className="text-center mt-6 text-xs" style={{ color: 'var(--text-3)' }}>
+          Powered by Castor · AI-native CMS
+        </p>
       </div>
     </main>
   );

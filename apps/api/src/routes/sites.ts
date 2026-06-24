@@ -78,6 +78,14 @@ router.get('/', requireOwner, async (_req, res) => {
   );
 });
 
+// GET /api/sites/:siteId/public — unauthenticated, returns only name (for client landing page)
+router.get('/:siteId/public', async (req, res) => {
+  const storage = await getStorage();
+  const site = await storage.getSite(req.params['siteId']!);
+  if (!site || site.status === 'deleted') { res.status(404).json({ error: 'Not found' }); return; }
+  res.json({ name: site.name, siteId: site.siteId });
+});
+
 // GET /api/sites/:siteId — get one site
 router.get('/:siteId', requireOwner, async (req, res) => {
   const storage = await getStorage();
