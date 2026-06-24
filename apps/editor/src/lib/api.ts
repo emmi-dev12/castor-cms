@@ -1,4 +1,5 @@
-const API_BASE = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3000';
+// API_URL is for server-side (Server Actions, RSC). NEXT_PUBLIC_API_URL is baked in at build for client.
+const API_BASE = process.env['API_URL'] ?? process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3000';
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
