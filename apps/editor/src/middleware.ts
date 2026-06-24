@@ -33,6 +33,11 @@ export function middleware(req: NextRequest) {
     return NextResponse.rewrite(new URL('/admin-local-only', req.url));
   }
 
+  // On local, root → admin
+  if (pathname === '/' && isLocalRequest(req)) {
+    return NextResponse.redirect(new URL('/admin', req.url));
+  }
+
   const isProtected = pathname.startsWith('/admin') || pathname.startsWith('/editor');
   if (!isProtected) return NextResponse.next();
 
@@ -70,5 +75,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/editor/:path*', '/admin-local-only'],
+  matcher: ['/', '/admin/:path*', '/editor/:path*', '/admin-local-only'],
 };
