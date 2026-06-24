@@ -55,6 +55,14 @@ export const IngestJobModel = mongoose.model<IngestJob>(
   }, opts),
 );
 
+export const TemplateModel = mongoose.model<{ templateId: string; html: string }>(
+  'Template',
+  new Schema({
+    templateId: { type: String, required: true, unique: true },
+    html: { type: String, required: true },
+  }),
+);
+
 export const AuditModel = mongoose.model<AuditEntry & { siteId: string }>(
   'Audit',
   new Schema({

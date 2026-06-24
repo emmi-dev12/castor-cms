@@ -9,19 +9,21 @@ function templatesRoot(): string {
   return path.resolve(process.env['CMS_DATA_ROOT'] ?? process.cwd(), 'data', 'templates');
 }
 
-/**
- * Given raw HTML and extracted slots, replaces every slot's DOM node inner
- * content with a {{slot:ID}} placeholder and returns a frozen template string.
- * The template is stored immutably (addressed by its SHA-256 hash).
- * Returns the templateId (hash).
- */
+function isMongoConnected(): boolean {
+  try {
+    const mongoose = require('mongoose') as typeof import('mongoose');
+    return mongoose.connection.readyState === 1;
+  } catch {
+    return false;
+  }
+}
+
 export function buildTemplate(html: string, slots: ExtractedSlot[]): {
   templateId: string;
   templateHtml: string;
 } {
   const $ = load(html);
 
-  // Build a lookup: xpath → placeholder
   const xpathToPlaceholder = new Map<string, string>(
     slots.map((s) => [s.descriptor.xpath, s.placeholder]),
   );
@@ -72,35 +74,49 @@ function buildXPathForTemplate(
   return '/' + parts.join('/');
 }
 
-/** Store a template immutably. Throws if a different template is submitted with the same hash. */
-export function storeTemplate(
+export async function storeTemplate(
   templateId: string,
   templateHtml: string,
   dataRoot?: string,
-): void {
+): Promise<void> {
+  if (isMongoConnected()) {
+    const { TemplateModel } = await import('../storage/mongo/models.js');
+    const existing = await TemplateModel.findOne({ templateId });
+    if (existing) {
+      if (existing.html !== templateHtml) {
+        throw new Error(`Template hash collision: ${templateId} already exists with different content.`);
+      }
+      return;
+    }
+    await TemplateModel.create({ templateId, html: templateHtml });
+    return;
+  }
+
+  // Filesystem fallback
   const root = dataRoot ?? templatesRoot();
   fs.mkdirSync(root, { recursive: true });
   const filePath = path.join(root, `${templateId}.html`);
-
   if (fs.existsSync(filePath)) {
     const existing = fs.readFileSync(filePath, 'utf8');
     if (existing !== templateHtml) {
-      throw new Error(
-        `Template hash collision: ${templateId} already exists with different content.`,
-      );
+      throw new Error(`Template hash collision: ${templateId} already exists with different content.`);
     }
-    return; // idempotent
+    return;
   }
-
   fs.writeFileSync(filePath, templateHtml, { encoding: 'utf8', flag: 'wx' });
 }
 
-/** Load a stored template by ID. */
-export function loadTemplate(templateId: string, dataRoot?: string): string {
+export async function loadTemplate(templateId: string, dataRoot?: string): Promise<string> {
+  if (isMongoConnected()) {
+    const { TemplateModel } = await import('../storage/mongo/models.js');
+    const doc = await TemplateModel.findOne({ templateId });
+    if (!doc) throw new Error(`Template not found: ${templateId}`);
+    return doc.html;
+  }
+
+  // Filesystem fallback
   const root = dataRoot ?? templatesRoot();
   const filePath = path.join(root, `${templateId}.html`);
-  if (!fs.existsSync(filePath)) {
-    throw new Error(`Template not found: ${templateId}`);
-  }
+  if (!fs.existsSync(filePath)) throw new Error(`Template not found: ${templateId}`);
   return fs.readFileSync(filePath, 'utf8');
 }

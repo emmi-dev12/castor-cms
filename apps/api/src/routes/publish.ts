@@ -53,7 +53,7 @@ router.post(
     // Render static bundle
     let htmlBundle: string;
     try {
-      htmlBundle = renderStaticPage(page, site.designTokens);
+      htmlBundle = await renderStaticPage(page, site.designTokens);
     } catch (err) {
       res.status(500).json({ error: `Render failed: ${String(err)}` });
       return;

@@ -60,7 +60,7 @@ export async function runIngest(
 
       const slots = extractSlots(cp.html, cp.boundingBoxes);
       const { templateId, templateHtml } = buildTemplate(cp.html, slots);
-      storeTemplate(templateId, templateHtml);
+      await storeTemplate(templateId, templateHtml);
 
       const slotMap: PageSchema['slots'] = {};
       for (const { descriptor } of slots) {
