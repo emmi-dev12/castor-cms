@@ -13,30 +13,8 @@ function decodeExp(token: string): number | null {
   }
 }
 
-function isLocalRequest(req: NextRequest): boolean {
-  const host = req.headers.get('host') ?? '';
-  const forwarded = req.headers.get('x-forwarded-for') ?? '';
-  const realIp = req.headers.get('x-real-ip') ?? '';
-  const hostname = host.split(':')[0];
-  if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') return true;
-  // Private network ranges (LAN access)
-  if (/^(10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.)/.test(forwarded.split(',')[0]?.trim() ?? '')) return true;
-  if (/^(10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.)/.test(realIp)) return true;
-  return false;
-}
-
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-
-  // Admin is local-only — block if accessed from a remote host
-  if (pathname.startsWith('/admin') && !isLocalRequest(req)) {
-    return NextResponse.rewrite(new URL('/admin-local-only', req.url));
-  }
-
-  // On local, root → admin
-  if (pathname === '/' && isLocalRequest(req)) {
-    return NextResponse.redirect(new URL('/admin', req.url));
-  }
 
   const isProtected = pathname.startsWith('/admin') || pathname.startsWith('/editor');
   if (!isProtected) return NextResponse.next();
@@ -58,14 +36,11 @@ export function middleware(req: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Admin routes require owner role
   if (pathname.startsWith('/admin')) {
     try {
       const [, payload] = token.split('.');
       const decoded = JSON.parse(Buffer.from(payload!, 'base64url').toString()) as { role: string };
-      if (decoded.role !== 'owner') {
-        return NextResponse.redirect(new URL('/login', req.url));
-      }
+      if (decoded.role !== 'owner') return NextResponse.redirect(new URL('/login', req.url));
     } catch {
       return NextResponse.redirect(new URL('/login', req.url));
     }
@@ -75,5 +50,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/', '/admin/:path*', '/editor/:path*', '/admin-local-only'],
+  matcher: ['/admin/:path*', '/editor/:path*'],
 };
