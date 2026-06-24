@@ -13,6 +13,25 @@ export interface BoundingBox {
 
 const CRAWLABLE_TAGS = ['p','h1','h2','h3','h4','h5','h6','span','li','td','th','a','button','img','label'];
 
+// Internal routes injected by hosting platforms / frameworks — skip during crawl
+const SKIP_PATTERNS = [
+  /^\/_next\//,       // Next.js
+  /^\/\.netlify\//,   // Netlify
+  /^\/__\w/,          // Netlify functions, Render internals
+  /^\/cdn-cgi\//,     // Cloudflare
+  /^\/api\//,         // API routes (not pages)
+  /\.(js|css|json|xml|txt|ico|png|jpg|jpeg|gif|svg|webp|woff2?|ttf|eot|map)(\?|$)/i,
+];
+
+function shouldSkip(url: string, origin: string): boolean {
+  try {
+    const u = new URL(url);
+    if (u.origin !== origin) return true;
+    const path = u.pathname;
+    return SKIP_PATTERNS.some(p => p.test(path));
+  } catch { return true; }
+}
+
 async function launchBrowser() {
   const isLinux = process.platform === 'linux';
   if (isLinux) {
@@ -75,7 +94,7 @@ export async function crawlSite(
       onProgress?.(item.url, item.depth);
 
       try {
-        await page.goto(item.url, { waitUntil: 'domcontentloaded', timeout: 15_000 });
+        await page.goto(item.url, { waitUntil: 'networkidle2', timeout: 20_000 });
         const html = await page.content();
         const screenshot = await page.screenshot({ type: 'png', fullPage: true }) as Buffer;
 
@@ -95,10 +114,11 @@ export async function crawlSite(
           for (const href of hrefs) {
             try {
               const u = new URL(href);
-              if (u.origin !== rootOrigin) continue;
               u.hash = '';
               const clean = u.toString();
-              if (!visited.has(clean)) queue.push({ url: clean, depth: item.depth + 1 });
+              if (!visited.has(clean) && !shouldSkip(clean, rootOrigin)) {
+                queue.push({ url: clean, depth: item.depth + 1 });
+              }
             } catch { /* skip malformed */ }
           }
         }

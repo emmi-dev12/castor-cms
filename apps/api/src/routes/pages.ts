@@ -217,6 +217,22 @@ router.post('/:pageId/verify-slots', requireOwner, async (req: AuthRequest, res)
   res.json(report);
 });
 
+// GET /api/sites/:siteId/pages/:pageId/raw-template — unrendered template for client-side preview
+router.get('/:pageId/raw-template', requireClientOrOwner, async (req: AuthRequest, res) => {
+  const { siteId, pageId } = req.params as { siteId: string; pageId: string };
+  const storage = await getStorage();
+  const page = await storage.getPage(siteId, pageId);
+  if (!page) { res.status(404).json({ error: 'Not found' }); return; }
+  try {
+    const { loadTemplate } = await import('../ingest/template.js');
+    const html = await loadTemplate(page.templateId);
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.send(html);
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
 // GET /api/sites/:siteId/pages/:pageId/template-html — rendered template for preview
 router.get('/:pageId/template-html', requireClientOrOwner, async (req: AuthRequest, res) => {
   const { siteId, pageId } = req.params as { siteId: string; pageId: string };

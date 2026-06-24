@@ -1,77 +1,89 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import type { PageSchema, DesignTokens } from '@castor/types';
-
-interface ActiveTokens {
-  colorIdx: number;
-  spacing: import('@castor/types').SpacingPreset;
-  fontIdx: number;
-}
+import type { PageSchema } from '@castor/types';
 
 interface Props {
   page: PageSchema;
-  tokens?: DesignTokens;
-  activeTokens?: ActiveTokens;
   token: string;
 }
 
 const API = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3000';
 
+function substituteSlots(template: string, page: PageSchema): string {
+  let html = template;
+  for (const [slotId, descriptor] of Object.entries(page.slots)) {
+    const placeholder = `{{slot:${slotId}}}`;
+    const val = descriptor.currentValue;
+    let replacement = '';
+    if (val.type === 'text') replacement = val.value.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    else if (val.type === 'image') replacement = val.src.replace(/"/g,'&quot;');
+    else if (val.type === 'link') replacement = val.href.replace(/"/g,'&quot;');
+    html = html.split(placeholder).join(replacement);
+  }
+  return html;
+}
+
 export function PreviewPane({ page, token }: Props) {
-  const [html, setHtml] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [template, setTemplate] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const templateRef = useRef<string | null>(null);
 
-  const fetchPreview = useCallback(async () => {
-    try {
-      const res = await fetch(
-        `${API}/api/sites/${page.siteId}/pages/${page.pageId}/template-html`,
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      let raw = await res.text();
-      // Inject base tag so relative assets resolve against the original site
-      const baseTag = `<base href="${page.url.replace(/\/$/, '')}/">`;
-      raw = raw.replace(/(<head[^>]*>)/i, `$1${baseTag}`);
-      setHtml(raw);
-      setError(null);
-    } catch (err) {
-      setError(String(err));
-    } finally {
-      setLoading(false);
-    }
-  }, [page.siteId, page.pageId, page.url, token]);
-
-  // Re-fetch with debounce when slot values change
+  // Fetch raw template once (or when page changes)
   useEffect(() => {
-    setLoading(true);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(fetchPreview, 600);
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [fetchPreview, page.slots]);
+    setTemplate(null);
+    setLoadError(null);
+    fetch(`${API}/api/sites/${page.siteId}/pages/${page.pageId}/raw-template`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.text();
+      })
+      .then((raw) => {
+        templateRef.current = raw;
+        setTemplate(raw);
+      })
+      .catch((err) => setLoadError(String(err)));
+  }, [page.siteId, page.pageId, token]);
+
+  // Build the srcdoc — instant on every slot change since it's pure client-side
+  const srcDoc = useCallback(() => {
+    if (!template) return undefined;
+    const base = page.url.replace(/\/$/, '') + '/';
+    let html = substituteSlots(template, page);
+    html = html.replace(/(<head[^>]*>)/i, `$1<base href="${base}">`);
+    return html;
+  }, [template, page])();
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden" style={{ background: 'var(--bg)' }}>
-      <div className="px-4 py-2.5 shrink-0 flex items-center justify-between"
+    <div className="flex-1 flex flex-col overflow-hidden" style={{ background: '#fff' }}>
+      <div className="px-4 py-2 shrink-0 flex items-center justify-between"
         style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
         <span className="text-xs" style={{ color: 'var(--text-3)' }}>
-          Preview {loading && <span style={{ color: 'var(--text-3)' }}>— loading…</span>}
+          {!template && !loadError ? 'Loading preview…' : 'Live Preview'}
         </span>
-        <span className="text-xs font-mono truncate max-w-xs" style={{ color: 'var(--text-3)' }}>{page.url}</span>
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-mono truncate max-w-xs" style={{ color: 'var(--text-3)' }}>{page.url}</span>
+          <a href={page.url} target="_blank" rel="noopener noreferrer"
+            className="text-xs transition-colors" style={{ color: 'var(--accent)' }} title="Open original">
+            ↗
+          </a>
+        </div>
       </div>
-      {error ? (
-        <div className="flex-1 flex items-center justify-center">
-          <p className="text-sm" style={{ color: 'var(--red)' }}>{error}</p>
+      {loadError ? (
+        <div className="flex-1 flex items-center justify-center p-8">
+          <p className="text-sm text-center" style={{ color: 'var(--text-3)' }}>
+            Preview unavailable — template not yet ingested or still loading.
+          </p>
         </div>
       ) : (
         <iframe
-          srcDoc={html ?? undefined}
-          sandbox="allow-same-origin allow-scripts"
-          className="flex-1 w-full border-0"
-          style={{ opacity: loading ? 0.4 : 1, transition: 'opacity 0.2s' }}
-          title="Page preview"
+          key={page.pageId}
+          srcDoc={srcDoc}
+          sandbox="allow-same-origin allow-scripts allow-popups"
+          className="flex-1 w-full border-0 bg-white"
+          title="Live preview"
         />
       )}
     </div>

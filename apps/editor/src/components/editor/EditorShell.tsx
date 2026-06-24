@@ -213,7 +213,7 @@ export function EditorShell({ initialPage, site, token, role }: Props) {
       )}
 
       {/* Preview */}
-      <PreviewPane page={page} tokens={site.designTokens} activeTokens={activeTokens} token={token} />
+      <PreviewPane page={page} token={token} />
     </div>
   );
 }
