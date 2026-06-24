@@ -4,178 +4,166 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Overview
 
-AI-native CMS: non-technical clients edit designated content slots on a website; the structural template is frozen immutably. A deterministic Guardian validates every change before it is saved. Changes are published as static HTML snapshots deployed via the Vercel CLI.
+**Castor** — AI-native CMS for a web design service. Non-technical clients edit designated content slots on their website; the structural template is locked immutably. A deterministic Guardian validates every change. Changes publish as static HTML via Vercel CLI.
 
 **Monorepo** (pnpm workspaces):
 - `apps/api` — Express/Node backend (port 3000)
 - `apps/editor` — Next.js 14 App Router frontend (port 3001)
-- `packages/types` — Shared TypeScript types imported by both apps as `@cms-ai/types`
+- `packages/types` — Shared TypeScript types as `@castor/types`
+
+**Deployed:**
+- Editor → `castor-cms.vercel.app` (Vercel)
+- API → `castor-api.onrender.com` (Render, auto-deploys from `master`)
+- DB → MongoDB Atlas (`castor` database)
 
 ## Commands
 
 ```bash
 # Root (runs both apps concurrently)
-pnpm dev          # start api + editor in watch mode
-pnpm test         # run all tests across workspace
-pnpm typecheck    # typecheck all packages
-pnpm build        # build all packages
+pnpm dev
 
 # Per-package
 pnpm --filter api dev
 pnpm --filter api test
-pnpm --filter api test:watch         # vitest in watch mode
+pnpm --filter api test:watch
 pnpm --filter api typecheck
 pnpm --filter editor dev
 pnpm --filter editor typecheck
 
-# Run a single test file
+# Single test file
 pnpm --filter api exec vitest run src/guardian/__tests__/guardian.test.ts
 
-# Types package must be built before the others reference its dist/
-pnpm --filter types build
+# Types must be built before other packages reference dist/
+pnpm --filter @castor/types build
 ```
 
 ## Environment
 
-`apps/api/.env` (copy from `.env.example`). Required vars:
-- `OWNER_MASTER_KEY` — owner login password (plaintext; overridden by bcrypt hash in `data/settings.json` once changed via Settings UI)
+`apps/api/.env`:
+- `OWNER_MASTER_KEY` — owner login password
 - `JWT_SECRET` — signs all JWTs
-
-Optional but needed for full functionality:
-- `VERCEL_SCOPE` — Vercel team/personal slug for CLI deploys
-- `ANTHROPIC_API_KEY` / `OPENROUTER_API_KEY` — AI chat
-- `MONGO_URI` — switches storage from filesystem to MongoDB
+- `MONGO_URI` — MongoDB Atlas connection string (switches storage from filesystem to MongoDB when set)
+- `EDITOR_ORIGIN` — comma-separated allowed CORS origins
+- `VERCEL_SCOPE` — for CLI publish deploys
 
 `apps/editor/.env.local`:
 ```
 NEXT_PUBLIC_API_URL=http://localhost:3000
 ```
 
-Runtime settings (AI keys, deploy adapter, password hash) are stored in `data/settings.json` and take priority over env vars. Managed via `apps/api/src/config/settings.ts`.
+On Vercel, `NEXT_PUBLIC_API_URL=https://castor-api.onrender.com`.
+
+Runtime settings (AI keys, deploy adapter, password hash) live in `data/settings.json` and override env vars. Managed via `apps/api/src/config/settings.ts`.
 
 ## Architecture
 
-### Data flow for a content edit
+### Data flow — content edit
 
 ```
 Client browser
   → PATCH /api/sites/:siteId/pages/:pageId/content  (Changeset)
-  → Guardian.validate(pageSchema, changeset, designTokens)   ← pure sync function, no AI
-  → if approved: savePage + saveVersion
+  → Guardian.validate(pageSchema, changeset, designTokens)   ← pure sync, no AI
+  → if approved: savePage + saveVersion snapshot
   → audit log appended (append-only)
 ```
 
-### Key modules — API
+### Storage
+
+**MongoDB** (when `MONGO_URI` set) or **filesystem** JSON under `apps/api/data/`. The `StorageAdapter` interface in `src/storage/adapter.ts` abstracts all persistence — swap the adapter without touching business logic.
+
+Filesystem layout (also mirrors MongoDB document structure):
+```
+data/
+  settings.json
+  templates/<hash>.html      ← immutable, hash-addressed
+  bundles/<publishId>.html
+  sites/<siteId>/
+    site.json
+    audit.log                ← append-only NDJSON
+    ingests/<ingestId>/
+    pages/<pageId>/
+      page.json
+      versions/v<n>.json
+```
+
+### Key API modules
 
 | Path | Purpose |
 |---|---|
-| `src/config/env.ts` | Required/optional env vars; throws on missing required |
-| `src/config/settings.ts` | Runtime settings store (`data/settings.json`); overrides env |
-| `src/storage/adapter.ts` | `StorageAdapter` interface — every persistence op goes through this |
-| `src/storage/filesystem.adapter.ts` | Default: JSON files under `data/sites/<siteId>/` |
-| `src/storage/mongo/` | Mongoose adapter, activated when `MONGO_URI` is set |
-| `src/guardian/guardian.ts` | **Deterministic validation** — 9 rules, pure function, no side effects |
-| `src/guardian/schemas.ts` | Zod schemas for TextSlotValue, ImageSlotValue, LinkSlotValue |
-| `src/guardian/audit.ts` | Appends to immutable `data/sites/<siteId>/audit.log` |
-| `src/ingest/slot-id.ts` | Stable slot ID generation (SHA-256 of xpath+tag+content) + 3-layer re-identification |
-| `src/ingest/template.ts` | Strips slot values → `{{slot:ID}}` placeholders; stores templates immutably at `data/templates/<hash>.html` |
-| `src/ingest/crawler.ts` | Puppeteer-based site crawler; returns HTML + screenshots + bounding boxes |
-| `src/ingest/orchestrator.ts` | Coordinates crawl → slot extraction → template storage → page schema creation |
-| `src/ingest/invariance.ts` | Re-identifies slots in fresh HTML; marks `UNDETECTABLE`, fires webhook |
-| `src/publish/renderer.ts` | Substitutes `{{slot:ID}}` placeholders into template; injects design token CSS vars |
-| `src/publish/adapters.ts` | `DeployAdapter` interface + `VercelAdapter` (CLI) + `RenderAdapter` (stub) |
-| `src/publish/bundle-store.ts` | Persists rendered HTML to `data/bundles/<publishId>.html` for rollback |
-| `src/ai/provider.ts` | Calls Anthropic or OpenRouter; keys come from runtime settings, never exposed |
-| `src/ai/suggest.ts` | Builds system prompt with slot context; parses LLM JSON; normalises to `Changeset` |
+| `src/storage/adapter.ts` | `StorageAdapter` interface |
+| `src/storage/filesystem.adapter.ts` | Default JSON-file adapter; accepts `dataRoot?` for test isolation |
+| `src/storage/mongo/` | Mongoose adapter, activated by `MONGO_URI` |
+| `src/guardian/guardian.ts` | Pure sync validation — 9 rules, no side effects |
+| `src/ingest/orchestrator.ts` | crawl → slot extraction → template storage → page upsert (deduplicates by URL) |
+| `src/ingest/crawler.ts` | Puppeteer crawler; uses `domcontentloaded` (not `networkidle2`) for speed |
+| `src/ingest/slot-id.ts` | SHA-256 slot IDs + 3-layer fallback re-identification |
+| `src/ingest/template.ts` | Strips content → `{{slot:ID}}` placeholders; immutable store |
+| `src/publish/adapters.ts` | `DeployAdapter` interface + `VercelAdapter` (CLI) + `RenderAdapter` |
+| `src/ai/provider.ts` | Anthropic / OpenRouter; keys from runtime settings only |
+| `src/routes/ingest.ts` | POST returns real UUID ingestId immediately; job runs in background; GET polls status |
 
-### Guardian rules (all in `src/guardian/guardian.ts`)
+### Guardian rules (in order, first failure wins per slot)
 
-Rejection stops on first failing rule per slot. Rules in order:
 1. Slot must exist in schema
 2. Slot must not be `frozen`
 3. Slot must not be `undetectable`
 4. Type must match schema type
 5. Required slot cannot be emptied
-6. Zod schema (URL format, maxLength via Zod)
+6. Zod schema (URL format, maxLength)
 7. `maxLength` from descriptor constraints
-8. XSS patterns (script, javascript:, event handlers, iframe, etc.)
+8. XSS patterns (script, javascript:, event handlers, iframe)
 9. Unapproved CSS design token references
 
 ### Page lifecycle
 
-```
-draft_curation  →  (owner curates slot visibility)  →  active
-```
-Pages enter `draft_curation` after ingest. They cannot be edited by clients or published until the owner confirms curation (`POST /pages/:id/curate`).
+Pages go straight to `active` after ingest (no curation gate by default). `draft_curation` status still exists for manual curation via `POST /pages/:id/curate` and the `CurationShell` UI.
 
-Slot visibility per slot: `client-visible` | `owner-only` | `frozen`
+### Site IDs
+
+Generated as URL slugs (`example-com`) not UUIDs. Collision-safe with `-2`, `-3` suffix. Existing sites from before this change have UUID IDs.
 
 ### Auth
 
-- `POST /api/auth/owner` — returns 24h JWT (`role: owner`)
-- `POST /api/auth/client` — returns 8h JWT scoped to `siteId` (`role: client`)
-- `POST /api/auth/editor-link` — owner generates pre-signed shareable URL for client
-- Middleware: `requireOwner`, `requireClientOrOwner(siteId)` in `src/middleware/auth.ts`
-- JWT stored as httpOnly cookie (`cms_token`) in the editor
-- Optional TOTP 2FA for owner via `OWNER_2FA_SECRET` env var
+- `POST /api/auth/owner` → 24h JWT (`role: owner`)
+- `POST /api/auth/client` → 8h JWT scoped to `siteId`
+- JWT stored as httpOnly cookie `cms_token`
+- CORS accepts multiple origins from `EDITOR_ORIGIN` (comma-separated)
+- Admin routes (`/admin/*`) are local-only: middleware blocks remote access and shows `/admin-local-only` page instead
+- On localhost, `/` redirects to `/admin`; on Vercel, `/` shows the public landing page
 
-### Editor frontend structure
+### Editor frontend
 
-- `/` → redirects to `/admin` (owner) or `/editor/:siteId` (client) or `/login`
-- `/login` — single password field; `?siteId=` param switches to client mode
-- `/admin` — owner dashboard (sites list, stats)
-- `/admin/sites/[siteId]` — ingest form, pages list
+- `/` — landing page (Vercel) or redirect to `/admin` (localhost)
+- `/login` — password field; `?siteId=` for client mode
+- `/admin` — owner dashboard
+- `/admin/sites/[siteId]` — ingest form (`IngestForm` polls job status and calls `router.refresh()` on complete), pages list, delete site
 - `/admin/sites/[siteId]/pages/[pageId]` — slot curation (`CurationShell`)
-- `/admin/settings` — AI keys, deploy config, password change (`SettingsForm`)
-- `/editor/[siteId]/[pageId]` — full editor (`EditorShell`)
+- `/admin/settings` — AI keys, deploy config, password (`SettingsForm`)
+- `/editor/[siteId]/[pageId]` — `EditorShell`
 
-`EditorShell` is the main client component. It manages dirty slot state, calls `PATCH /content`, shows Guardian rejections inline, and controls three side panels (AI Chat, Design Tokens, Version History). The preview is a sandboxed `<iframe srcdoc>` rebuilt from current slot values.
+`EditorShell` owns: dirty slot state, save/publish status, active panel (`ai | tokens | history`), and `activeTokens` (color/spacing/font selections passed to both `DesignTokenPanel` and `PreviewPane`). Design token changes update the preview iframe in real time via `srcDoc` rebuild — no direct DOM manipulation.
 
-### Storage on disk
+`PreviewPane` builds a complete HTML document string and sets it as `srcDoc` on a sandboxed iframe. Token selections are injected as CSS variables.
 
-```
-data/
-  settings.json              ← runtime settings (AI keys, password hash, etc.)
-  templates/<hash>.html      ← immutable frozen templates (hash-addressed)
-  bundles/<publishId>.html   ← rendered HTML for publish rollback
-  sites/<siteId>/
-    site.json
-    audit.log                ← newline-delimited JSON, append-only
-    ingests/<ingestId>/      ← raw HTML + screenshots from crawler
-    pages/<pageId>/
-      page.json
-      versions/v<n>.json
-    publishes/<publishId>.json
-```
+### Branding / design system
 
-### Slot ID stability
+"Warm Obsidian" aesthetic. CSS variables defined in `apps/editor/src/app/globals.css`. Key vars: `--bg`, `--surface`, `--surface-2`, `--border`, `--accent` (`#E8A828`), `--text`, `--text-2`, `--text-3`. Fonts: Playfair Display (display), DM Sans (body), JetBrains Mono (mono).
 
-Three identification layers, tried in order on re-ingest:
-1. **Primary**: SHA-256(`xpath::tagName::contentSample[:64]`)
-2. **Fallback 1**: `parentTag>tagName[siblingIndex]:lengthBucket`
-3. **Fallback 2**: Bounding-box centroid proximity (±5%) + Levenshtein text similarity ≥ 0.8
+Hover/focus effects use CSS classes (`hover-surface`, `hover-accent`, `focus-accent`) defined in `globals.css` — **never inline `onMouseEnter`/`onMouseLeave` in Server Components**.
 
-If all three fail the slot is flagged `UNDETECTABLE` (not deleted) and an alert is fired. A page with undetectable slots cannot be published.
+Logo component: `src/components/CastorLogo.tsx` — `variant="full" | "mark" | "word"`.
 
 ## Testing
 
-Tests are in `apps/api/src/**/__tests__/`. Vitest, no DOM environment needed.
+Tests in `apps/api/src/**/__tests__/`. Vitest, no DOM needed.
 
-Key test files:
-- `src/guardian/__tests__/guardian.test.ts` — 28 tests, one per rejection rule branch
-- `src/ingest/__tests__/slot-id.test.ts` — primary ID stability + fallback re-identification under DOM drift
-- `src/ingest/__tests__/template.test.ts` — immutability enforcement
-- `src/storage/__tests__/adapters.test.ts` — full CRUD against `FilesystemAdapter`
-- `src/routes/__tests__/auth.test.ts` — JWT issuance, rate limiting, scope enforcement
-
-`src/test-setup.ts` sets required env vars before module load (Vitest `setupFiles`).
-
-The `FilesystemAdapter` constructor accepts an optional `dataRoot` override — pass a `mkdtemp` path in tests instead of using `process.chdir`.
+`src/test-setup.ts` sets required env vars via Vitest `setupFiles`. Pass `dataRoot` to `FilesystemAdapter` constructor for test isolation (avoids `process.chdir`).
 
 ## TypeScript notes
 
-- API: CommonJS output (`module: CommonJS`), `DOM` lib included (needed for Puppeteer `page.evaluate` callbacks)
-- Cheerio/domhandler types: import `Element`, `AnyNode`, `Text` from `domhandler` (not from `cheerio` directly)
-- Express router files: annotate as `const router: ExpressRouter = Router()` to avoid TS2742 portable type errors
-- Editor: Next.js `bundler` module resolution; `@/*` maps to `src/*`
-- `'use server'` belongs only in files where **all** exports are async server actions (e.g. `actions.ts`). Server-side utility modules (like `lib/auth.ts`) must NOT have `'use server'` at the file level.
+- Shared types package is `@castor/types` (was `@cms-ai/types`)
+- Cheerio/domhandler: import `Element`, `AnyNode`, `Text` from `domhandler`, not `cheerio`
+- Express routers: annotate `const router: ExpressRouter = Router()` to avoid TS2742
+- `'use server'` only in files where all exports are async server actions. `lib/auth.ts` must NOT have it (exports sync `decodeToken`)
+- Server Components cannot have inline event handlers (`onMouseEnter` etc.) — use CSS classes or extract to a `'use client'` component
+- `PageStatus` includes `'deleted'` — filter with `p.status !== 'deleted'` in list endpoints
