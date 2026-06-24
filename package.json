@@ -1,0 +1,17 @@
+{
+  "name": "castor",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"pnpm --filter api dev\" \"pnpm --filter editor dev\"",
+    "build": "pnpm --filter types build && pnpm --filter api build && pnpm --filter editor build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "typescript": "^5.4.5",
+    "next": "14.2.5"
+  }
+}

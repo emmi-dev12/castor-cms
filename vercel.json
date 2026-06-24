@@ -1,0 +1,6 @@
+{
+  "installCommand": "npm install -g pnpm@latest && pnpm install --ignore-scripts",
+  "buildCommand": "pnpm --filter @castor/types build && pnpm --filter editor build",
+  "outputDirectory": "apps/editor/.next",
+  "framework": "nextjs"
+}

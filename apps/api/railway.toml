@@ -1,0 +1,7 @@
+[build]
+builder = "nixpacks"
+
+[deploy]
+startCommand = "node --import tsx/esm src/index.ts"
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3

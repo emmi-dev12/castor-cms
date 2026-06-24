@@ -1,0 +1,53 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - OWNER_MASTER_KEY=${OWNER_MASTER_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+      - EDITOR_ORIGIN=http://localhost:3001
+      - MONGO_URI=${MONGO_URI:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - VERCEL_TOKEN=${VERCEL_TOKEN:-}
+      - RENDER_API_KEY=${RENDER_API_KEY:-}
+      - DEPLOY_ADAPTER=${DEPLOY_ADAPTER:-vercel}
+      - OWNER_2FA_SECRET=${OWNER_2FA_SECRET:-}
+      - ALERT_WEBHOOK_URL=${ALERT_WEBHOOK_URL:-}
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      mongo:
+        condition: service_healthy
+        required: false
+
+  editor:
+    build:
+      context: .
+      dockerfile: apps/editor/Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:3000
+    depends_on:
+      - api
+
+  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    profiles:
+      - mongo
+
+volumes:
+  mongo_data:

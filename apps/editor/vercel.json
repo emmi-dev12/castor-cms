@@ -1,0 +1,5 @@
+{
+  "installCommand": "cd ../.. && npm install -g pnpm@latest && pnpm install",
+  "buildCommand": "cd ../.. && pnpm --filter @castor/types build && pnpm --filter editor build",
+  "outputDirectory": ".next"
+}
