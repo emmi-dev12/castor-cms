@@ -7,7 +7,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Castor** — a client CMS. You build or clone a website, hand a client a slug +
 password, and they self-edit their own content (and, if allowed, design)
 in-browser without breaking the layout. Draft → Publish, every published version
-kept for one-click rollback. See `DEPLOY.md` for the production/hosting model.
+kept for one-click rollback. See `DEPLOY.md` for the production/hosting model,
+`SETUP.md` for first-time setup from a fresh clone, and `LICENSE.md` for the
+terms — Castor is sold as source, so treat both as user-facing docs and keep
+them true when behaviour changes.
 
 Castor itself contains **no AI** — it's fully deterministic (an AI layer existed
 briefly and was removed). Ingestion of new sites *is* AI-driven, but that's an
@@ -33,6 +36,8 @@ npm run build        # production build
 npm run deploy       # deploy AND re-point the aliases (see Deploy — never bare `vercel --prod`)
 npm run seed         # write the sample "acme" site to storage (see note below)
 npm test             # unit tests: Guardian permissions + password rules (node:test via tsx)
+npx tsx --test lib/guardian/validate.test.ts          # one file
+npx tsx --test --test-name-pattern="palette range" lib/guardian/validate.test.ts  # one test
 npm run lint         # eslint
 npx tsc --noEmit     # typecheck
 ```
@@ -199,9 +204,22 @@ from published content — no editor work, no re-ingest. `metadataBase` (in
 request-deduped `getSiteCached` (`lib/sites/read.ts`, React `cache()`) so
 `generateMetadata` and the page render share one DB fetch.
 
+**Marketing landing page** (`components/marketing/`, rendered at `/` in prod):
+sells the product itself, and is the one part of the app a buyer will delete or
+rewrite. It is self-contained — the CMS does not import from it. Prices and
+checkout links live only in `components/marketing/pricing.ts`, read from
+`GUMROAD_URL_PERSONAL` / `_BUSINESS` / `_FOUNDING` (with `GUMROAD_URL` as a
+fallback) and `FOUNDING_SEATS` (`0` ends the launch offer). An unset link falls
+back to the on-page contact form rather than rendering a dead link, so the page
+is never broken mid-setup. `POST /api/access-request` stores enquiries as
+submissions under the pseudo-slug `__access`, readable at
+`/admin/submissions/__access`; it reuses the `/submit` defences (honeypot,
+length caps, per-IP rate limit).
+
 ## Routing
 
-- `/` — admin dashboard locally; "nothing here" notice in prod.
+- `/` — owner dashboard locally; the **marketing landing page** in prod.
+  Locally, `/?preview=landing` renders the landing page without deploying.
 - `/[slug]` + `/[slug]/[...path]` — public published view (home + sub-pages).
 - `/edit/[slug]` + `/edit/[slug]/[...path]` — password-gated client editor.
   The editor lives under its own top-level `/edit/*` prefix (not `/[slug]/edit`)
@@ -210,6 +228,11 @@ request-deduped `getSiteCached` (`lib/sites/read.ts`, React `cache()`) so
   `admin`, `api`, `""` as site slugs (they'd shadow top-level routes).
 - `/admin/edit/[slug]` (+ `/[...path]`) — owner master editor, local-only.
 - `/admin/submissions/[slug]` — form-submission inbox, local-only.
+- Admin APIs (all `requireAdminApi()`-gated, local-only): `/api/admin/login`,
+  `/api/admin/password` (change the dashboard password),
+  `/api/admin/[slug]/{edit,structure,manage,permissions,submissions}`, and the
+  unlinked `/api/admin/ingest`. There is no `/tier` route — it was replaced by
+  `/permissions`.
 - Public + edit routes share logic via `components/pages/{Public,Edit,AdminEdit}SitePage.tsx`.
   Multi-page sites get a `PublicNav` (public) and a "Pages" switcher (editor).
 - Unknown slug → polite "this isn't your site" notice.
