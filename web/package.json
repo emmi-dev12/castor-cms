@@ -11,7 +11,8 @@
     "seed": "tsx scripts/seed.ts",
     "deploy": "bash scripts/deploy.sh",
     "lint": "eslint",
-    "test": "node --import tsx --test lib/**/*.test.ts"
+    "test": "node --import tsx --test lib/**/*.test.ts",
+    "dist": "bash scripts/dist.sh"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
