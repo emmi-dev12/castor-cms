@@ -7,7 +7,9 @@
 # across, commits it there, and pushes.
 #
 # The destination is never hard-coded: set CASTOR_DIST_PATH in the environment
-# or in web/.env.local, or pass it as the second argument.
+# or in web/.env.local. The commit identity comes from the destination repo's
+# own git config — set it once there, or every published commit inherits
+# whatever name and email this machine happens to use.
 #
 #   npm run dist -- "Add gallery section"
 #   CASTOR_DIST_PATH=~/somewhere npm run dist -- "message"
@@ -54,7 +56,18 @@ if [ -z "$(git status --porcelain)" ]; then
   exit 0
 fi
 
+# Refuse rather than publish under the machine's default identity: the point of
+# the distribution repo is that buyers never see a personal address.
+NAME=$(git config --local user.name || true)
+EMAIL=$(git config --local user.email || true)
+if [ -z "$NAME" ] || [ -z "$EMAIL" ]; then
+  echo "Set the publishing identity once, in $DEST:" >&2
+  echo "  git config --local user.name 'Your Name'" >&2
+  echo "  git config --local user.email 'you@users.noreply.github.com'" >&2
+  exit 1
+fi
+
 git add -A
-git commit -q -m "$MESSAGE"
+git commit -q --author="$NAME <$EMAIL>" -m "$MESSAGE"
 git push -q origin HEAD
 echo "Published: $(git log -1 --format='%h %s')"
