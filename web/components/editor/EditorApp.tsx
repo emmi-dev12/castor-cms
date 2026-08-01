@@ -23,6 +23,7 @@ import { clone, findSlot } from "@/lib/model/content";
 import { CAPABILITY_LABELS } from "@/lib/guardian/policy";
 import type { ImageValue, Page, Permissions, Slot } from "@/lib/model/types";
 import { EditorCapabilitiesProvider } from "@/components/editor/EditorContext";
+import { useEditHistory, type SlotSnapshot } from "@/components/editor/useEditHistory";
 
 interface VersionMeta {
   id: string;
@@ -103,6 +104,7 @@ export function EditorApp({
   admin?: boolean;
 }) {
   const router = useRouter();
+  const history = useEditHistory();
   const [content, setContent] = useState<Page>(page);
   const [syncedPage, setSyncedPage] = useState<Page>(page);
   const [status, setStatus] = useState<string>("");
@@ -129,6 +131,9 @@ export function EditorApp({
   if (page !== syncedPage) {
     setSyncedPage(page);
     setContent(page);
+    // The stack refers to slots on the previous page — replaying them after a
+    // page switch would edit something the user can no longer see.
+    history.reset();
   }
 
   // Owner edits hit the admin endpoint (unrestricted by client permissions).
@@ -200,11 +205,30 @@ export function EditorApp({
     router.push("/");
   }
 
-  async function onEdit(slotId: string, value: Slot["value"]) {
-    // Optimistic local update so color changes render immediately.
+  /** Read a slot's current value and colour, for the undo stack. */
+  function snapshotOf(slotId: string): SlotSnapshot | null {
+    const found = findSlot({ pages: [content] }, slotId);
+    if (!found) return null;
+    const slot = found.slot as Slot;
+    const color = slot.type === "text" || slot.type === "richtext" ? slot.color : undefined;
+    return { value: slot.value, color };
+  }
+
+  /**
+   * The single write path: update local state optimistically, then persist.
+   * Ordinary edits, undo and redo all go through here, so they can never drift
+   * apart in what they send or how they handle refusal.
+   */
+  async function persist(slotId: string, snap: SlotSnapshot, withColor: boolean) {
     const next = clone(content);
     const found = findSlot({ pages: [next] }, slotId);
-    if (found) (found.slot as Slot).value = value as never;
+    if (!found) return;
+    const slot = found.slot as Slot;
+    slot.value = snap.value as never;
+    if (withColor && (slot.type === "text" || slot.type === "richtext")) {
+      if (snap.color === undefined) delete slot.color;
+      else slot.color = snap.color;
+    }
     setContent(next);
 
     setStatus("Saving…");
@@ -212,7 +236,14 @@ export function EditorApp({
       const res = await fetch(editApi, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ slotId, value }),
+        // Only send `color` when the change is actually about colour: it's a
+        // separate permission, so an unnecessary colour field would get a
+        // text-only client's edit refused.
+        body: JSON.stringify(
+          withColor
+            ? { slotId, value: snap.value, color: snap.color ?? null }
+            : { slotId, value: snap.value },
+        ),
       });
       const data = (await res.json()) as {
         ok: boolean;
@@ -236,43 +267,41 @@ export function EditorApp({
     }
   }
 
+  async function onEdit(slotId: string, value: Slot["value"]) {
+    const before = snapshotOf(slotId);
+    if (before) {
+      history.record({
+        slotId,
+        before,
+        after: { value, color: before.color },
+        touchesColor: false,
+      });
+    }
+    await persist(slotId, { value, color: before?.color }, false);
+  }
+
   /** Save a text slot's own colour. Sends the current text too, because the
    *  edit endpoint validates value and colour together. */
   async function onEditColor(slotId: string, color: string | null) {
-    const next = clone(content);
-    const found = findSlot({ pages: [next] }, slotId);
-    if (!found) return;
-    const slot = found.slot as Slot;
-    if (slot.type !== "text" && slot.type !== "richtext") return;
-    if (color === null) delete slot.color;
-    else slot.color = color;
-    setContent(next); // optimistic — the swatch and text recolour immediately
+    const before = snapshotOf(slotId);
+    if (!before) return;
+    const after: SlotSnapshot = { value: before.value, color: color ?? undefined };
+    history.record({ slotId, before, after, touchesColor: true });
+    await persist(slotId, after, true);
+  }
 
-    setStatus("Saving…");
-    try {
-      const res = await fetch(editApi, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ slotId, value: slot.value, color }),
-      });
-      const data = (await res.json()) as {
-        ok: boolean;
-        reason?: string;
-        conflict?: boolean;
-      };
-      if (!data.ok) {
-        setStatus(
-          data.conflict
-            ? (data.reason ?? "Reloading…")
-            : `Rejected: ${data.reason ?? "not allowed"}`,
-        );
-        router.refresh();
-        return;
-      }
-      setStatus("Saved ✓ (draft)");
-    } catch {
-      setStatus("Network error");
-    }
+  async function onUndo() {
+    const entry = history.undo();
+    if (!entry) return;
+    await persist(entry.slotId, entry.before, entry.touchesColor);
+    setStatus("Undone");
+  }
+
+  async function onRedo() {
+    const entry = history.redo();
+    if (!entry) return;
+    await persist(entry.slotId, entry.after, entry.touchesColor);
+    setStatus("Redone");
   }
 
   async function onPublish() {
@@ -317,6 +346,39 @@ export function EditorApp({
     );
   const colorSlots = tokenSlots("color");
   const spaceSlots = tokenSlots("space");
+
+  // Cmd+Z / Ctrl+Z, and Cmd+Shift+Z / Ctrl+Y to redo.
+  //
+  // Deliberately NOT intercepted while the caret is in a text field: there the
+  // browser's own undo fixes a typo mid-sentence, which is what someone
+  // actually wants. Our stack takes over once the edit has been committed on
+  // blur. Registered on the window so it works wherever focus happens to be.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey;
+      if (!mod || e.key.toLowerCase() !== "z") {
+        // Ctrl+Y is the other common redo binding.
+        if (mod && e.key.toLowerCase() === "y") {
+          e.preventDefault();
+          void onRedo();
+        }
+        return;
+      }
+      const el = e.target as HTMLElement | null;
+      const typing =
+        !!el &&
+        (el.isContentEditable ||
+          el.tagName === "INPUT" ||
+          el.tagName === "TEXTAREA");
+      if (typing) return; // let the browser undo the typing itself
+
+      e.preventDefault();
+      if (e.shiftKey) void onRedo();
+      else void onUndo();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
 
   // The owner is never limited by the client's permissions.
   const capabilities = {
@@ -365,6 +427,31 @@ export function EditorApp({
                 ? Help
               </button>
             )}
+            {/* Shown as well as bound to the shortcut: a client is not going
+                to guess Cmd+Z exists, and the disabled state tells them
+                whether there is anything to undo. */}
+            <div className="flex items-center" data-tour="undo">
+              <button
+                type="button"
+                onClick={() => void onUndo()}
+                disabled={!history.canUndo || busy}
+                title="Undo (⌘Z)"
+                aria-label="Undo"
+                className="rounded-l-md border border-slate-300 px-2.5 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-transparent"
+              >
+                ↶
+              </button>
+              <button
+                type="button"
+                onClick={() => void onRedo()}
+                disabled={!history.canRedo || busy}
+                title="Redo (⇧⌘Z)"
+                aria-label="Redo"
+                className="-ml-px rounded-r-md border border-slate-300 px-2.5 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-transparent"
+              >
+                ↷
+              </button>
+            </div>
             <button
               type="button"
               data-tour="publish"

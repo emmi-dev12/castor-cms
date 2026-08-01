@@ -34,6 +34,16 @@ export function EditableText({
   // Committed value: rendered once on mount, then updated only on blur — so React
   // re-renders never disturb the caret in the uncontrolled contentEditable.
   const [startValue, setStartValue] = useState(initial);
+  // ...but an *external* change (undo, redo, a reload of the draft) has to show.
+  // Tracking the last prop we saw distinguishes the two: while typing, the prop
+  // still holds the last committed text and matches `startValue`, so nothing
+  // syncs and the caret is untouched. After an undo the prop differs, and the
+  // node re-renders with the restored text.
+  const [seenProp, setSeenProp] = useState(initial);
+  if (initial !== seenProp) {
+    setSeenProp(initial);
+    setStartValue(initial);
+  }
   const [picking, setPicking] = useState(false);
   const caps = useEditorCapabilities();
   const Tag = as;
