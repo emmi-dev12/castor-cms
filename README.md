@@ -26,7 +26,7 @@ editing their own live site. Licensed under [LICENSE.md](LICENSE.md).
 ```
    YOU (local, on your Mac)            MongoDB Atlas             CLIENT (any browser)
    Admin dashboard  ───build/clone──▶  shared database  ◀──edit──  /edit/<slug>
-   • build sites, set tiers                                        • inline edit + design
+   • import/build sites, permissions                               • inline edit + design
    • master editor, full control                                  • Draft → Publish
         │                                                          • can't break layout
         └────────────── public site: castorcms.vercel.app/<slug> ─────────────┘
@@ -47,9 +47,15 @@ publish it).
   `cta`, `footer`) and a slot is one editable value (text, image, link, colour,
   spacing…).
 - **The Guardian** — a deterministic policy engine that validates *every* edit
-  before it touches the draft. Three owner-assigned tiers decide what a client
-  can change: **locked** (content only), **moderate** (content + on-brand
-  palette colours and preset spacing), **free** (anything).
+  before it touches the draft. You tick exactly what each client may change —
+  text, images, links, text colour, section colours, spacing — and whether
+  colours and spacing are limited to your palette and scale. Any combination
+  works, and a page can override the site's.
+- **Per-element text colour** — every heading and paragraph carries its own
+  optional colour, picked with the native OS colour panel (or restricted to
+  your palette).
+- **Undo/redo** — ⌘Z and ⇧⌘Z in the editor, without hijacking the browser's own
+  undo while the client is typing.
 - **Draft → Publish → Rollback** — clients edit a private draft; publishing
   snapshots it as an immutable version and flips the live pointer; rollback just
   moves the pointer back. Every published version is kept.
@@ -58,6 +64,10 @@ publish it).
   reaches *every existing site* with nothing to re-import.
 - **Forms** — drop in a `form` section and its submissions land in a per-site
   inbox you read from the local dashboard.
+- **Import a built site** — drag a ZIP of HTML/CSS/JS onto the dashboard and it
+  becomes an editable site. Imported pages render in a sandboxed iframe, so
+  their own JavaScript still runs without being able to reach cookies or
+  another client's site.
 
 ### Ingesting existing sites
 
@@ -90,20 +100,22 @@ npm run seed                      # writes a sample "acme" site
 npm run dev                       # http://localhost:3000
 ```
 
-- **Dashboard:** `/` (local only) — build sites, set tiers, open the inbox.
+- **Dashboard:** `/` (local only) — import a site, set what each client may
+  change, open the submissions inbox, change the admin password.
 - **Client editor:** `/edit/<slug>` — the password-gated link you send a client.
 - **Owner master editor:** `/admin/edit/<slug>` (local only) — full control,
-  bypasses the client's tier, add/move/delete sections and pages.
+  unrestricted by the client's permissions, add/move/delete sections and pages.
 - **Public site:** `/<slug>`.
 
 ## Commands (run from `web/`)
 
 | | |
 |---|---|
-| `npm run dev` | local dev server (admin + cloning work here) |
+| `npm run dev` | local dev server (admin + import work here) |
 | `npm run build` | production build |
 | `npm run seed` | write the sample site to storage |
-| `npm test` | unit tests (Guardian + password rules) |
+| `npm test` | unit tests (Guardian, passwords, ZIP import) |
+| `npm run dist` | publish a snapshot to the buyer-facing repo (owner tooling) |
 | `npm run lint` / `npx tsc --noEmit` | lint / typecheck |
 | `npm run deploy` | deploy **and** re-point the aliases (see `DEPLOY.md`) |
 

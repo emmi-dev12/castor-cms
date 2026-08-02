@@ -34,6 +34,7 @@ commands from `web/`.
 npm run dev          # local dev server (this is where admin + Playwright clone work)
 npm run build        # production build
 npm run deploy       # deploy AND re-point the aliases (see Deploy — never bare `vercel --prod`)
+npm run dist         # publish a snapshot to the buyer-facing repo (owner tooling; see below)
 npm run seed         # write the sample "acme" site to storage (see note below)
 npm test             # unit tests: Guardian permissions + password rules (node:test via tsx)
 npx tsx --test lib/guardian/validate.test.ts          # one file
@@ -84,8 +85,10 @@ Local admin and the hosted editor **share one Atlas DB** — set `MONGODB_URI` i
 - A `Section` is either a **typed block** — `hero`, `text` (add an `image` slot
   and it becomes a 2-col split), `features`, `testimonials`, `faq`, `gallery`,
   `form`, `cta`, `footer` — rendered by `components/sections/SectionView.tsx`,
-  or `raw-html` (a cloned site: frozen `template`/`head` + tagged slots, rendered
-  by `components/sections/RawHtmlSection.tsx`).
+  `raw-html` (a Playwright clone: frozen `template`/`head` + tagged slots,
+  rendered inline by `components/sections/RawHtmlSection.tsx`), or `imported`
+  (a ZIP import: the same frozen shape, but rendered in a **sandboxed iframe**
+  by `components/sections/ImportedSection.tsx` — see ZIP import below).
   Adding a type = a new `case` in `SectionView` + a template in
   `lib/model/sectionTemplates.ts` (which also drives the admin "add section" menu).
 - A `Slot` is `{id, type, value}`, `type ∈ text|richtext|image|link|button|
@@ -158,6 +161,24 @@ the normal Guardian path. Two traps: `?edit=1` serves the **draft** and is
 auth-gated, and the height reporter must measure `document.body`, never
 `documentElement` (whose scrollHeight is at least the viewport — i.e. the
 iframe itself — so the frame would echo its own height and never resize).
+
+**Undo/redo** (`components/editor/useEditHistory.ts`): a bounded stack of
+before/after slot snapshots. Ordinary edits, undo and redo all go through one
+`persist()` in `EditorApp`, so they can't drift. Two rules worth keeping:
+⌘Z is **not** intercepted while the caret is in a text field (the browser's own
+undo is what someone wants mid-sentence), and replay only sends `color` when the
+original edit changed it — text and colour are separate permissions, so an
+unnecessary colour field would get a text-only client's undo refused.
+`EditableText` syncs its uncontrolled DOM text only when the incoming prop
+differs from the last one it saw: true after an undo, false while typing, so the
+caret survives.
+
+**Owner tooling — `npm run dist`** (`scripts/dist.sh`): copies the committed
+tree into a separate buyer-facing repo with a clean history (no personal email,
+no commit-by-commit record of pricing decisions), commits and pushes. Publishes
+`HEAD`, refuses a dirty working tree, and refuses to commit under the machine's
+default git identity. Destination from `CASTOR_DIST_PATH`; identity from the
+destination repo's own git config.
 
 **Cloning** (`lib/ingest/`, local admin only) — **no longer exposed in the UI.**
 The dashboard's "Clone a site" form was removed: ingestion is AI-driven (the
@@ -252,8 +273,13 @@ length caps, per-IP rate limit).
   `admin`, `api`, `""` as site slugs (they'd shadow top-level routes).
 - `/admin/edit/[slug]` (+ `/[...path]`) — owner master editor, local-only.
 - `/admin/submissions/[slug]` — form-submission inbox, local-only.
+- `/assets/[sha]` — content-addressed asset store for imported sites (public,
+  `immutable`). `/frame/[slug]/[[...path]]` — the document rendered inside an
+  imported page's sandboxed iframe; `?edit=1` serves the draft and is
+  auth-gated. Both are in `RESERVED_SLUGS`, so no site can shadow them.
 - Admin APIs (all `requireAdminApi()`-gated, local-only): `/api/admin/login`,
   `/api/admin/password` (change the dashboard password),
+  `/api/admin/import` (ZIP import),
   `/api/admin/[slug]/{edit,structure,manage,permissions,submissions}`, and the
   unlinked `/api/admin/ingest`. There is no `/tier` route — it was replaced by
   `/permissions`.

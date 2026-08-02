@@ -91,9 +91,11 @@ the dashboard) — the inbox is never exposed on the deployed site.
 
 ## How you actually use it, day to day
 
-1. **Locally**: build or clone a site → set its slug, client password, and tier.
-   (It saves to Atlas.)
-2. **Send the client**: `https://your-app.vercel.app/<slug>/edit` + their password.
+1. **Locally**: build or import a site → set its slug, client password, and
+   what the client may change. (It saves to Atlas.)
+2. **Send the client**: `https://your-app.vercel.app/edit/<slug>` + their
+   password. (The editor lives at `/edit/<slug>`, not `/<slug>/edit`, so a
+   content page can never collide with it.)
 3. They edit within the rails you set; hit **Publish**; the public site at
    `/<slug>` updates. You can roll back anytime.
 

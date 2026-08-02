@@ -228,6 +228,32 @@ sections already support so the Guardian's permission switches keep working
 uniformly — a slot labelled `textColor` is gated by the `textColor`
 permission, any other colour slot by `sectionColors`. Typecheck (`npx tsc --noEmit`) before deploying.
 
+## Before you start: is this a job for ZIP import?
+
+Castor can import a **built** site directly (`lib/import/`, the "Import a site"
+box on the dashboard, or `POST /api/admin/import`). It unzips the output, stores
+assets by content hash, rewrites links, tags text and images as editable slots,
+and renders each page in a sandboxed iframe so the site's own JavaScript keeps
+working.
+
+Use ZIP import when:
+- the user already has built output (a `dist/`, `out/`, `_site/`, an export from
+  Webflow/Framer/Astro/Eleventy), and
+- pixel-exact fidelity matters more than the site being restructured.
+
+Hand-author into typed sections (the rest of this skill) when:
+- there's no built output, only a live URL or a source project, or
+- the site should become a *Castor-native* site — one that keeps improving as
+  Castor's section renderers improve.
+
+The trade-off is real and worth stating to the user: an imported page is a
+frozen document. It will not pick up renderer improvements the way typed
+sections do, and its layout can't be restructured in the editor. A typed-section
+ingest is more work up front and better afterwards.
+
+Never try to "import" a source project by building it — Castor does not run
+customer build tooling. Ask the user to build it and zip the output.
+
 ## Per-slot text colour
 
 `text` and `richtext` slots carry an optional `color`, so each piece of text is
