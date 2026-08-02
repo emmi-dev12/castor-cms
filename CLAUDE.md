@@ -135,6 +135,30 @@ slotId, value, color)`, `null` clears it — and is gated by `textColor`,
 remember to forward `body.color`; forgetting it silently drops colour changes
 while still answering 200.
 
+**ZIP import** (`lib/import/`, local admin only): drag a ZIP of a **built**
+site onto the dashboard and it becomes an editable site. `unpack.ts` is the
+security boundary — the archive is untrusted, so entries are decompressed in
+memory (never to disk, defusing path traversal by construction) with caps on
+file size, total size and count. `prepare.ts` rewrites every asset reference to
+`/assets/<sha256>` and internal links to `/<slug>/<page>`, then tags text and
+image leaves using the **same token format as `lib/ingest/snapshot.ts`**, so
+`applySlots` renders both paths identically. Each HTML file becomes one Page
+holding one `imported` section. Assets are content-addressed in the DB
+(`Repository.putAsset/getAsset`), so a logo on ten pages is stored once, and
+`/assets/[sha]` serves them `immutable` + `nosniff`.
+
+**Imported pages run in a sandboxed iframe** (`ImportedSection`, `/frame/...`):
+`sandbox="allow-scripts"` **without** `allow-same-origin`. Imported JavaScript
+therefore runs — menus and sliders survive — but in an opaque origin, so it
+can't read cookies or reach another client's site on the shared domain. The
+parent consequently *can't script into the frame*, so the frame carries an
+injected bridge (`lib/import/bridge.ts`) that makes tagged elements editable
+and `postMessage`s changes out; the parent checks `e.source` and persists via
+the normal Guardian path. Two traps: `?edit=1` serves the **draft** and is
+auth-gated, and the height reporter must measure `document.body`, never
+`documentElement` (whose scrollHeight is at least the viewport — i.e. the
+iframe itself — so the frame would echo its own height and never resize).
+
 **Cloning** (`lib/ingest/`, local admin only) — **no longer exposed in the UI.**
 The dashboard's "Clone a site" form was removed: ingestion is AI-driven (the
 `castor-ingest` skill), because the Playwright snapshot freezes lazy-load

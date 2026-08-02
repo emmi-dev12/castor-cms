@@ -2,7 +2,7 @@
 // when MONGODB_URI is set (e.g. on Vercel) it uses MongoDB Atlas.
 // Server-only — never import from a client component.
 
-import type { Site, Submission } from "../model/types";
+import type { Asset, Site, Submission } from "../model/types";
 
 export interface Repository {
   getSite(slug: string): Promise<Site | null>;
@@ -41,6 +41,17 @@ export interface Repository {
    */
   getSetting(key: string): Promise<string | null>;
   setSetting(key: string, value: string): Promise<void>;
+
+  /**
+   * Content-addressed binary store for imported site assets (images, CSS, JS).
+   * Keyed by the sha256 of the bytes, so a logo repeated across ten pages is
+   * stored once and its URL can be cached forever.
+   */
+  putAsset(asset: Asset): Promise<void>;
+  getAsset(sha: string): Promise<Asset | null>;
+  /** Every asset belonging to a site, so deleting a site can reclaim them. */
+  listAssetShas(siteSlug: string): Promise<string[]>;
+  deleteAssets(siteSlug: string): Promise<void>;
 }
 
 let cached: Repository | null = null;

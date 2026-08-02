@@ -1,8 +1,8 @@
 // MongoDB Atlas-backed repository. Used when MONGODB_URI is set (e.g. on Vercel).
 // Caches the client on globalThis so serverless invocations reuse the connection.
 
-import { MongoClient, type Collection, type Db } from "mongodb";
-import type { Site, Submission } from "../model/types";
+import { Binary, MongoClient, type Collection, type Db } from "mongodb";
+import type { Asset, Site, Submission } from "../model/types";
 import type { Repository } from "./repository";
 
 const DB_NAME = process.env.MONGODB_DB || "ai_native_cms";
@@ -139,6 +139,62 @@ export class MongoRepository implements Repository {
     const col = (await this.db()).collection<{ key: string; value: string }>("settings");
     await col.replaceOne({ key }, { key, value }, { upsert: true });
   }
+
+  private async assets(): Promise<Collection<AssetDoc>> {
+    const col = (await this.db()).collection<AssetDoc>("assets");
+    await col.createIndex({ siteSlug: 1 }).catch(() => {});
+    return col;
+  }
+
+  async putAsset(asset: Asset): Promise<void> {
+    const col = await this.assets();
+    // Content-addressed: the same bytes uploaded twice are one document.
+    await col.updateOne(
+      { _id: asset.sha },
+      {
+        $set: {
+          contentType: asset.contentType,
+          size: asset.size,
+          data: new Binary(asset.bytes),
+        },
+        // Keep the first owner: assets are shared by hash, and reassigning
+        // ownership on re-upload would let one site's delete orphan another's.
+        $setOnInsert: { siteSlug: asset.siteSlug },
+      },
+      { upsert: true },
+    );
+  }
+
+  async getAsset(sha: string): Promise<Asset | null> {
+    const doc = await (await this.assets()).findOne({ _id: sha });
+    if (!doc) return null;
+    return {
+      sha,
+      siteSlug: doc.siteSlug,
+      contentType: doc.contentType,
+      size: doc.size,
+      bytes: new Uint8Array(doc.data.buffer),
+    };
+  }
+
+  async listAssetShas(siteSlug: string): Promise<string[]> {
+    const docs = await (await this.assets())
+      .find({ siteSlug }, { projection: { _id: 1 } })
+      .toArray();
+    return docs.map((d) => d._id);
+  }
+
+  async deleteAssets(siteSlug: string): Promise<void> {
+    await (await this.assets()).deleteMany({ siteSlug });
+  }
+}
+
+interface AssetDoc {
+  _id: string;
+  siteSlug: string;
+  contentType: string;
+  size: number;
+  data: Binary;
 }
 
 interface RateDoc {

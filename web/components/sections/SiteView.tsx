@@ -43,6 +43,7 @@ export function SiteView({
             onEdit={onEdit}
             onEditImage={onEditImage}
             siteSlug={siteSlug}
+            pagePath={page.path}
           />
         ))}
       </div>
@@ -92,6 +93,7 @@ export function SiteView({
             onEdit={onEdit}
             onEditImage={onEditImage}
             siteSlug={siteSlug}
+            pagePath={page.path}
           />
 
           <div className="py-2">

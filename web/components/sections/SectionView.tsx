@@ -7,6 +7,7 @@
 import { EditableImage } from "@/components/editor/EditableImage";
 import { EditableText } from "@/components/editor/EditableText";
 import { FormSection } from "@/components/sections/FormSection";
+import { ImportedSection } from "@/components/sections/ImportedSection";
 import { RawHtmlSection } from "@/components/sections/RawHtmlSection";
 import type { ImageValue, LinkValue, Section, Slot } from "@/lib/model/types";
 
@@ -71,6 +72,7 @@ export function SectionView({
   onEdit,
   onEditImage,
   siteSlug,
+  pagePath = "",
 }: {
   section: Section;
   editable: boolean;
@@ -78,6 +80,7 @@ export function SectionView({
   onEditImage?: EditImageFn;
   /** Needed by `form` sections so they know where to POST submissions. */
   siteSlug?: string;
+  pagePath?: string;
 }) {
   const T = (
     label: string,
@@ -143,6 +146,18 @@ export function SectionView({
       : undefined;
 
   switch (section.type) {
+    case "imported":
+      // A whole imported document, isolated in a sandboxed frame.
+      return (
+        <ImportedSection
+          siteSlug={siteSlug ?? ""}
+          pagePath={pagePath}
+          editable={editable}
+          onEdit={onEdit}
+          onEditImage={onEditImage}
+        />
+      );
+
     case "raw-html":
       return (
         <RawHtmlSection

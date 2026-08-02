@@ -475,6 +475,7 @@ export function EditorApp({
             </p>
             <SiteView
               page={content}
+              siteSlug={slug}
               editable
               onEdit={onEdit}
               onEditImage={(slotId, value) =>

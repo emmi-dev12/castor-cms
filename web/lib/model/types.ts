@@ -117,6 +117,17 @@ export interface Submission {
   fields: Record<string, string>;
 }
 
+/** A binary file belonging to an imported site, addressed by content hash. */
+export interface Asset {
+  /** sha256 of `bytes`, lowercase hex — also its URL. */
+  sha: string;
+  /** Which site uploaded it, so assets can be reclaimed with the site. */
+  siteSlug: string;
+  contentType: string;
+  size: number;
+  bytes: Uint8Array;
+}
+
 export interface Site {
   /** Unique, URL-facing identifier: castorcms.vercel.app/[slug]. */
   slug: string;

@@ -4,7 +4,7 @@
 
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import type { Site, Submission } from "../model/types";
+import type { Asset, Site, Submission } from "../model/types";
 import type { Repository } from "./repository";
 
 const DATA_ROOT = path.join(process.cwd(), ".data");
@@ -12,6 +12,7 @@ const DATA_DIR = path.join(DATA_ROOT, "sites");
 const SUBMISSIONS_DIR = path.join(DATA_ROOT, "submissions");
 const RATES_FILE = path.join(DATA_ROOT, "rate-limits.json");
 const SETTINGS_FILE = path.join(DATA_ROOT, "settings.json");
+const ASSETS_DIR = path.join(DATA_ROOT, "assets");
 
 function fileFor(slug: string): string {
   // slug is validated on write; keep it filesystem-safe.
@@ -171,5 +172,56 @@ export class FileRepository implements Repository {
     const all = await this.readSettings();
     all[key] = value;
     await fs.writeFile(SETTINGS_FILE, JSON.stringify(all, null, 2), "utf8");
+  }
+
+  async putAsset(asset: Asset): Promise<void> {
+    await fs.mkdir(ASSETS_DIR, { recursive: true });
+    await fs.writeFile(path.join(ASSETS_DIR, `${asset.sha}.bin`), asset.bytes);
+    await fs.writeFile(
+      path.join(ASSETS_DIR, `${asset.sha}.json`),
+      JSON.stringify({ siteSlug: asset.siteSlug, contentType: asset.contentType, size: asset.size }),
+      "utf8",
+    );
+  }
+
+  async getAsset(sha: string): Promise<Asset | null> {
+    try {
+      const [bytes, metaRaw] = await Promise.all([
+        fs.readFile(path.join(ASSETS_DIR, `${sha}.bin`)),
+        fs.readFile(path.join(ASSETS_DIR, `${sha}.json`), "utf8"),
+      ]);
+      const meta = JSON.parse(metaRaw) as { siteSlug: string; contentType: string; size: number };
+      return { sha, bytes: new Uint8Array(bytes), ...meta };
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === "ENOENT") return null;
+      throw err;
+    }
+  }
+
+  private async allAssetMeta(): Promise<{ sha: string; siteSlug: string }[]> {
+    let names: string[];
+    try {
+      names = await fs.readdir(ASSETS_DIR);
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === "ENOENT") return [];
+      throw err;
+    }
+    const out: { sha: string; siteSlug: string }[] = [];
+    for (const name of names.filter((n) => n.endsWith(".json"))) {
+      const raw = await fs.readFile(path.join(ASSETS_DIR, name), "utf8");
+      out.push({ sha: name.replace(/\.json$/, ""), siteSlug: (JSON.parse(raw) as { siteSlug: string }).siteSlug });
+    }
+    return out;
+  }
+
+  async listAssetShas(siteSlug: string): Promise<string[]> {
+    return (await this.allAssetMeta()).filter((a) => a.siteSlug === siteSlug).map((a) => a.sha);
+  }
+
+  async deleteAssets(siteSlug: string): Promise<void> {
+    for (const sha of await this.listAssetShas(siteSlug)) {
+      await fs.rm(path.join(ASSETS_DIR, `${sha}.bin`), { force: true });
+      await fs.rm(path.join(ASSETS_DIR, `${sha}.json`), { force: true });
+    }
   }
 }

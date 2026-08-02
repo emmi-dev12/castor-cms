@@ -5,6 +5,7 @@
 import Link from "next/link";
 import { AdminLoginForm } from "@/components/admin/AdminLoginForm";
 import { AdminPasswordChange } from "@/components/admin/AdminPasswordChange";
+import { ImportForm } from "@/components/admin/ImportForm";
 import { PermissionsPanel } from "@/components/admin/PermissionsPanel";
 import { LandingPage } from "@/components/marketing/LandingPage";
 import { Notice } from "@/components/ui/Notice";
@@ -92,6 +93,8 @@ export default async function Home({
           New sites are ingested with Claude — see the{" "}
           <code className="rounded bg-slate-200 px-1">castor-ingest</code> skill.
         </p>
+
+        <ImportForm />
 
         <AdminPasswordChange />
       </div>

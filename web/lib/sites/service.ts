@@ -169,11 +169,12 @@ export interface CreateSiteInput {
 /**
  * Slugs that would collide with a top-level app route and so can't name a site:
  * "" (the admin/home route), "edit" (the whole editor surface lives at
- * /edit/[slug]), "admin", and "api". Everything else is fair game — content
+ * /edit/[slug]), "admin", "api", "assets" (the imported-asset store) and
+ * "frame" (the sandboxed document for imported pages). Everything else is fair game — content
  * page *paths* (e.g. a page literally named "edit") are unaffected because the
  * editor is not nested under /[slug].
  */
-export const RESERVED_SLUGS = new Set(["", "edit", "admin", "api"]);
+export const RESERVED_SLUGS = new Set(["", "edit", "admin", "api", "assets", "frame"]);
 
 /** Create (or overwrite) a site. Used by the local admin seed. */
 export async function createSite(input: CreateSiteInput): Promise<Site> {
