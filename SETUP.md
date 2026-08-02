@@ -142,6 +142,24 @@ They log in, edit, and press Publish. Nothing they do is public until they do.
 | `CMS_ENABLE_ADMIN` | both | No | Force the admin on (`1`) or off (`0`). Defaults to on locally, off in production. Setting `1` in production exposes your dashboard — don't. |
 | `GUMROAD_URL` | production | No | Only used by the marketing landing page, which you'll probably replace. |
 
+## About `npm audit`
+
+`npm audit` reports high-severity advisories against Next.js and two of its
+bundled dependencies (`postcss`, `sharp`). Worth knowing before it alarms you:
+
+- Castor tracks the **latest stable Next release**. The advisories' affected
+  range currently covers *every released version*, so there is no version to
+  upgrade to — the fix is in an unreleased preview.
+- **Do not run `npm audit fix --force`.** npm's only "fix" is downgrading to
+  Next 9, which is from 2020 and will not run this app.
+- Most of the advisories don't apply to Castor's surface: it uses no
+  middleware, no Server Actions, no `next/image` (so `sharp` is never
+  exercised), no i18n routing and no custom server. `postcss` runs at build
+  time on Castor's own stylesheets; imported CSS is stored and served
+  verbatim, never processed.
+
+Re-run `npm install` when a newer Next is published.
+
 ## When something's wrong
 
 **"Admin password not set"** — `ADMIN_PASSWORD` is missing from `.env.local`, or
