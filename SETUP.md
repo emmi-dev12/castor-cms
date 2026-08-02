@@ -116,12 +116,24 @@ CASTOR_ALIASES="yourdomain.vercel.app" npm run deploy
 
 With no aliases configured it just deploys, which is all most setups need.
 
+## Importing an existing site
+
+Drag a ZIP of a **built** site (HTML, CSS, images — the output of a build, not a
+source project) onto the dashboard and it becomes an editable site: each HTML
+file becomes a page, assets are stored and served from the database, and text
+and images become editable slots.
+
+Imported pages render inside a sandboxed iframe, so their own JavaScript still
+runs while being unable to reach cookies or another client's site. The trade-off
+is that an imported page is a frozen document: it won't pick up improvements to
+Castor's section renderers the way a typed-section site does.
+
 ## 6. Hand a site to a client
 
-1. In the local dashboard, open the site and set its **permission tier**:
-   - **Locked** — text, images, links and buttons only
-   - **Moderate** — the above, plus palette colours and preset spacing
-   - **Free** — anything
+1. In the local dashboard, click the site's **can edit:** button and tick what
+   the client may change — text, images, links, text colour, section colours,
+   spacing — plus whether colours and spacing are limited to your palette and
+   scale. Three presets set the boxes for you. Any combination is valid.
 2. Reset the client password from the admin editor. It generates a strong one —
    copy it.
 3. Send them `https://your-domain/edit/<slug>` and that password.
@@ -140,7 +152,9 @@ They log in, edit, and press Publish. Nothing they do is public until they do.
 | `SITE_URL` | production | Recommended | Your public URL. Used for canonical links, OpenGraph tags, `robots.txt` and `sitemap.xml`. |
 | `MONGODB_DB` | both | No | Database name. Defaults to `ai_native_cms`. |
 | `CMS_ENABLE_ADMIN` | both | No | Force the admin on (`1`) or off (`0`). Defaults to on locally, off in production. Setting `1` in production exposes your dashboard — don't. |
-| `GUMROAD_URL` | production | No | Only used by the marketing landing page, which you'll probably replace. |
+| `GUMROAD_URL_PERSONAL` / `_BUSINESS` / `_FOUNDING` | production | No | Checkout links for the marketing landing page, which you'll probably replace. `GUMROAD_URL` still works as a fallback. |
+| `FOUNDING_SEATS` | production | No | Landing page only: how many launch-price seats remain. `0` ends the offer. |
+| `CASTOR_ALIASES` | local | No | Domains `npm run deploy` re-points after each deploy. |
 
 ## About `npm audit`
 
