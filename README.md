@@ -10,7 +10,7 @@ Hand a client the keys to their own site. They change the words and the photos
 in the browser — and **can't** move a section, pick a colour that isn't yours,
 or touch the code.
 
-Free · source-available · self-hosted &nbsp;•&nbsp; [Live demo ↗](https://castorcms.vercel.app/swiss-allstar) &nbsp;•&nbsp; [Setup guide](SETUP.md) &nbsp;•&nbsp; [Licence](LICENSE.md)
+Free · source-available · self-hosted &nbsp;•&nbsp; [Try the editor ↗](https://castorcms.vercel.app/#demo) &nbsp;•&nbsp; [Setup guide](SETUP.md) &nbsp;•&nbsp; [Licence](LICENSE.md)
 
 </div>
 
