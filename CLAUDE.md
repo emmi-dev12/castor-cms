@@ -9,8 +9,8 @@ password, and they self-edit their own content (and, if allowed, design)
 in-browser without breaking the layout. Draft → Publish, every published version
 kept for one-click rollback. See `DEPLOY.md` for the production/hosting model,
 `SETUP.md` for first-time setup from a fresh clone, and `LICENSE.md` for the
-terms — Castor is sold as source, so treat both as user-facing docs and keep
-them true when behaviour changes.
+terms — the source is public and free, so treat both as user-facing docs and
+keep them true when behaviour changes.
 
 Castor itself contains **no AI** — it's fully deterministic (an AI layer existed
 briefly and was removed). Ingestion of new sites *is* AI-driven, but that's an
@@ -251,12 +251,10 @@ request-deduped `getSiteCached` (`lib/sites/read.ts`, React `cache()`) so
 
 **Marketing landing page** (`components/marketing/`, rendered at `/` in prod):
 sells the product itself, and is the one part of the app a buyer will delete or
-rewrite. It is self-contained — the CMS does not import from it. Prices and
-checkout links live only in `components/marketing/pricing.ts`, read from
-`GUMROAD_URL_PERSONAL` / `_BUSINESS` / `_FOUNDING` (with `GUMROAD_URL` as a
-fallback) and `FOUNDING_SEATS` (`0` ends the launch offer). An unset link falls
-back to the on-page contact form rather than rendering a dead link, so the page
-is never broken mid-setup. `POST /api/access-request` stores enquiries as
+rewrite. It is self-contained — the CMS does not import from it. Castor is free and
+source-available, so there is no checkout: every CTA points at the public
+repository, configured in one place (`components/marketing/pricing.ts`,
+`CASTOR_REPO_URL` to point at a fork). `POST /api/access-request` stores enquiries as
 submissions under the pseudo-slug `__access`, readable at
 `/admin/submissions/__access`; it reuses the `/submit` defences (honeypot,
 length caps, per-IP rate limit).

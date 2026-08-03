@@ -1,7 +1,6 @@
 # Setting up Castor
 
-You bought the repo. This gets you from a fresh clone to a client editing their
-own live site. It assumes you can use a terminal, and nothing else.
+This gets you from a fresh clone to a client editing their own live site. It assumes you can use a terminal, and nothing else.
 
 Budget about 30 minutes the first time. Everything here fits inside the free
 tier of both services it uses.
@@ -152,8 +151,7 @@ They log in, edit, and press Publish. Nothing they do is public until they do.
 | `SITE_URL` | production | Recommended | Your public URL. Used for canonical links, OpenGraph tags, `robots.txt` and `sitemap.xml`. |
 | `MONGODB_DB` | both | No | Database name. Defaults to `ai_native_cms`. |
 | `CMS_ENABLE_ADMIN` | both | No | Force the admin on (`1`) or off (`0`). Defaults to on locally, off in production. Setting `1` in production exposes your dashboard — don't. |
-| `GUMROAD_URL_PERSONAL` / `_BUSINESS` / `_FOUNDING` | production | No | Checkout links for the marketing landing page, which you'll probably replace. `GUMROAD_URL` still works as a fallback. |
-| `FOUNDING_SEATS` | production | No | Landing page only: how many launch-price seats remain. `0` ends the offer. |
+| `CASTOR_REPO_URL` | production | No | Landing page only: where its "Get the code" links point. Set it to your fork. |
 | `CASTOR_ALIASES` | local | No | Domains `npm run deploy` re-points after each deploy. |
 
 ## About `npm audit`

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Castor">
+  <title>Castor</title>
+  <!--
+    The mark is the product thesis, not decoration: three stacked bars — the
+    client's content — held on a baseline that doesn't move. The top bar is
+    offset and the accent one is short, so it reads as "pieces you can shuffle",
+    while the rule underneath stays perfectly straight and full width.
+  -->
+  <rect width="128" height="128" rx="28" fill="#0f172a"/>
+
+  <!-- content bars -->
+  <rect x="30" y="34" width="52" height="12" rx="6" fill="#f8fafc"/>
+  <rect x="30" y="56" width="68" height="12" rx="6" fill="#f8fafc" opacity="0.72"/>
+  <rect x="30" y="78" width="34" height="12" rx="6" fill="#e4a245"/>
+
+  <!-- the baseline everything rests on -->
+  <rect x="30" y="99" width="68" height="5" rx="2.5" fill="#f8fafc" opacity="0.38"/>
+</svg>

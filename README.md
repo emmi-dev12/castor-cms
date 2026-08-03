@@ -1,6 +1,12 @@
+<img src="web/public/logo.svg" width="72" alt="">
+
 # Castor
 
 A CMS for handing clients the keys to their site — not the code.
+
+**Free and source-available.** Clone it, run it on your own hosting, use it for
+as many client sites as you like. See [LICENSE.md](LICENSE.md) — the one thing
+it asks is that you don't resell Castor itself.
 
 You build or clone a website, give a client a link and a password, and they edit
 their own content (and, if you allow it, some of the design) right in the

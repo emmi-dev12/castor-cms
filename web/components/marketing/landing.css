@@ -132,6 +132,13 @@
   padding-block: 1.5rem;
 }
 
+.hero__logo {
+  display: inline-block;
+  vertical-align: -6px;
+  margin-right: 0.5rem;
+  border-radius: 6px;
+}
+
 .hero__mark {
   font-weight: 600;
   letter-spacing: -0.01em;

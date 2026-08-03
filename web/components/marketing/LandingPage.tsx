@@ -4,7 +4,7 @@
 
 import { EditorDemo } from "./EditorDemo";
 import { GravityWordmark } from "./GravityWordmark";
-import { FOUNDING, FROM_PRICE, INCLUDED, PRIMARY_CTA, REQUIREMENTS, TIERS } from "./pricing";
+import { INCLUDED, REPO_URL, REQUIREMENTS } from "./pricing";
 import { RequestAccessForm } from "./RequestAccessForm";
 import { Reveal } from "./Reveal";
 import { ScrollFX } from "./ScrollFX";
@@ -43,9 +43,14 @@ export function LandingPage() {
       <header className="hero">
         <div className="wrap">
           <div className="hero__bar">
-            <span className="hero__mark">Castor</span>
-            <a className="btn" href="#pricing">
-              From {FROM_PRICE}
+            <span className="hero__mark">
+              {/* eslint-disable-next-line @next/next/no-img-element -- a static
+                  SVG mark; next/image would add a loader for no benefit */}
+              <img src="/logo.svg" alt="" width={26} height={26} className="hero__logo" />
+              Castor
+            </span>
+            <a className="btn" href={REPO_URL} {...external}>
+              GitHub
             </a>
           </div>
 
@@ -64,21 +69,15 @@ export function LandingPage() {
                 page you shipped.
               </p>
               <div className="hero__cta">
-                <a
-                  className="btn btn--primary"
-                  href={PRIMARY_CTA.href}
-                  {...(PRIMARY_CTA.external ? external : {})}
-                >
-                  Get the repo — {PRIMARY_CTA.price}
+                <a className="btn btn--primary" href={REPO_URL} {...external}>
+                  Get the code
                 </a>
                 <a className="btn" href="#demo">
                   Try the editor
                 </a>
               </div>
               <p className="hero__terms">
-                {FOUNDING.active
-                  ? `Founding price for the first ${FOUNDING.seats} buyers. You host it, you own it, no subscription.`
-                  : "One-time payment. You host it, you own it, no subscription."}
+                Free to run and free to keep. You host it, you own it, no subscription.
               </p>
             </div>
           </div>
@@ -91,8 +90,8 @@ export function LandingPage() {
             <div className="section__head">
               <h2 className="section__title">This is what your client gets.</h2>
               <p className="section__body">
-                Type in the page below — it edits like the real thing. Then change the permission
-                tier and try a colour it doesn&rsquo;t allow.
+                Type in the page below — it edits like the real thing. Then change what&rsquo;s
+                permitted and try a colour it doesn&rsquo;t allow.
               </p>
             </div>
             <EditorDemo />
@@ -150,77 +149,28 @@ export function LandingPage() {
         <div className="wrap">
           <Reveal>
             <div className="section__head">
-              <h2 className="section__title">Buy the code, not a subscription.</h2>
+              <h2 className="section__title">Free, and yours to keep.</h2>
               <p className="section__body">
-                You get the repository and run Castor on your own hosting. No monthly fee, no
-                per-site cut, and nothing to lose access to — build for as many clients as you
-                like.
+                Castor is free and the source is public. Clone it, run it on your own hosting,
+                and use it for as many client sites as you like — there is nothing to buy and
+                no per-site fee to anyone.
               </p>
             </div>
           </Reveal>
-          {FOUNDING.active ? (
-            <Reveal delay={60}>
-              <aside className="founding">
-                <p className="founding__title">
-                  Founding price — {FOUNDING.price}, first {FOUNDING.seats} buyers
-                </p>
-                <p className="founding__body">
-                  Castor is new, and you&rsquo;d be taking a chance on it. The first{" "}
-                  {FOUNDING.seats} people pay {FOUNDING.price} instead of {TIERS[0]!.price}. Same
-                  code, same licence, same updates — just cheaper. In return I&rsquo;d like your
-                  bug reports.
-                </p>
-                <a
-                  className="btn btn--primary"
-                  href={FOUNDING.href}
-                  {...(FOUNDING.external ? external : {})}
-                >
-                  Get the founding price — {FOUNDING.price}
-                </a>
-              </aside>
-            </Reveal>
-          ) : null}
 
-          <div className="prices">
-            {TIERS.map((tier, i) => (
-              <Reveal key={tier.id} delay={80 + i * 80}>
-                <div className={`price ${tier.featured ? "price--featured" : ""}`}>
-                  <div className="price__head">
-                    <span className="price__name">{tier.name}</span>
-                    <span className="price__amount">{tier.price}</span>
-                    <span className="price__unit">once, no subscription</span>
-                  </div>
-                  <p className="price__who">{tier.who}</p>
-                  <a
-                    className={`btn price__buy ${tier.featured ? "btn--primary" : ""}`}
-                    href={tier.href}
-                    {...(tier.external ? external : {})}
-                  >
-                    Get the repo — {tier.price}
-                  </a>
-                  <p className="price__covers">{tier.covers}</p>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-
-          <Reveal delay={240}>
+          <Reveal delay={80}>
             <div className="price__shared">
-              <p className="price__shared-title">
-                Both tiers get exactly the same thing. Only the licence differs.
-              </p>
               <ul className="price__list">
                 {INCLUDED.map((item) => (
                   <li key={item}>{item}</li>
                 ))}
               </ul>
+              <a className="btn btn--primary price__buy" href={REPO_URL} {...external}>
+                Get the code on GitHub
+              </a>
               <p className="price__note">
-                Paid through Gumroad. Send me your GitHub username and you&rsquo;ll get an invite
-                the same day.
-              </p>
-              <p className="price__note">
-                Updates for as long as Castor is maintained, at every tier. No renewal, and
-                nothing to lose access to.
+                Use it for client work, commercially, at no cost. The one thing the licence
+                asks is that you don&rsquo;t resell Castor itself.
               </p>
 
               <div className="price__reqs">
@@ -241,8 +191,8 @@ export function LandingPage() {
           <Reveal>
             <h2 className="section__title">Questions first?</h2>
             <p className="section__body">
-              Not sure it fits what you&rsquo;re building, or want to see it running on your own
-              site before you buy? Ask — you&rsquo;ll get a real answer, not a sales sequence.
+              Not sure it fits what you&rsquo;re building, or stuck getting it running? Ask —
+              you&rsquo;ll get a real answer from the person who wrote it.
             </p>
           </Reveal>
           <Reveal delay={80}>
