@@ -9,10 +9,24 @@ import { EditableText } from "@/components/editor/EditableText";
 import { FormSection } from "@/components/sections/FormSection";
 import { ImportedSection } from "@/components/sections/ImportedSection";
 import { RawHtmlSection } from "@/components/sections/RawHtmlSection";
+import { BG_IMAGE_LABEL } from "@/lib/model/types";
 import type { ImageValue, LinkValue, Section, Slot } from "@/lib/model/types";
 
 export type EditFn = (slotId: string, value: Slot["value"]) => void;
 export type EditImageFn = (slotId: string, value: ImageValue) => void;
+
+/** Background style for a section that has a background image set — applied by
+ *  SiteView so it shows on the public page and in the editor alike. */
+export function sectionBackgroundStyle(section: Section): React.CSSProperties | undefined {
+  const s = section.slots.find((x) => x.label === BG_IMAGE_LABEL && x.type === "image");
+  const src = s && s.type === "image" ? s.value.src?.trim() : "";
+  if (!src) return undefined;
+  return {
+    backgroundImage: `url("${src.replace(/"/g, "%22")}")`,
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+  };
+}
 
 function slotByLabel(section: Section, label: string): Slot | undefined {
   return section.slots.find((s) => s.label === label);

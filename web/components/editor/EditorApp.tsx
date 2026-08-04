@@ -17,8 +17,9 @@ import {
   type TourStep,
 } from "@/components/editor/Walkthrough";
 import { SiteView } from "@/components/sections/SiteView";
-import { clone, findSlot } from "@/lib/model/content";
+import { clone, findSlot, newId } from "@/lib/model/content";
 import { CAPABILITY_LABELS, colorCapabilityFor } from "@/lib/guardian/policy";
+import { BG_IMAGE_LABEL } from "@/lib/model/types";
 import type { ImageValue, Page, Permissions, Slot } from "@/lib/model/types";
 import { Inspector, type Selection } from "@/components/editor/Inspector";
 import { useEditHistory, type SlotSnapshot } from "@/components/editor/useEditHistory";
@@ -291,6 +292,51 @@ export function EditorApp({
     await persist(slotId, after, true);
   }
 
+  /** Set or clear a section's background image. Structural (adds/removes a slot),
+   *  so it isn't on the undo stack; it persists via its own endpoint. */
+  async function onEditBackground(sectionId: string, src: string | null) {
+    // Optimistic: reflect the change locally so the background updates at once.
+    const next = clone(content);
+    const section = next.sections.find((s) => s.id === sectionId);
+    if (section) {
+      const existing = section.slots.find(
+        (s) => s.label === BG_IMAGE_LABEL && s.type === "image",
+      );
+      if (src === null) {
+        if (existing) section.slots = section.slots.filter((s) => s !== existing);
+      } else if (existing && existing.type === "image") {
+        existing.value = { ...existing.value, src };
+      } else {
+        section.slots.push({
+          id: newId("s"),
+          type: "image",
+          label: BG_IMAGE_LABEL,
+          value: { src, alt: "" },
+        });
+      }
+      setContent(next);
+    }
+
+    setStatus("Saving…");
+    try {
+      const url = admin ? `/api/admin/${slug}/background` : `/api/${slug}/background`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ sectionId, src }),
+      });
+      const data = (await res.json()) as { ok: boolean; reason?: string; conflict?: boolean };
+      if (!data.ok) {
+        setStatus(data.conflict ? (data.reason ?? "Reloading…") : `Rejected: ${data.reason ?? ""}`);
+        router.refresh();
+        return;
+      }
+      setStatus("Saved ✓ (draft)");
+    } catch {
+      setStatus("Network error");
+    }
+  }
+
   async function onUndo() {
     const entry = history.undo();
     if (!entry) return;
@@ -530,6 +576,7 @@ export function EditorApp({
                 permissions={effectivePerms}
                 onEdit={onEdit}
                 onEditColor={onEditColor}
+                onEditBackground={onEditBackground}
               />
             </section>
 

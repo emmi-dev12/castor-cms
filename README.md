@@ -62,7 +62,7 @@ link.
   policy engine every edit passes through before it touches the draft.
 - **Click to edit** — click anything on the page and it's selected; the sidebar
   shows the controls for exactly that. A heading's colour, a button's colour and
-  link, a section's background and spacing — always scoped to what you picked, so
+  link, a section's background colour, background image and spacing — always scoped to what you picked, so
   you can see what you're changing.
 - **Colour on a leash** — recolour a single heading or one button with the native
   OS colour picker, or hold the client to the swatches you chose. Per-element, and

@@ -94,6 +94,14 @@ Local admin and the hosted editor **share one Atlas DB** — set `MONGODB_URI` i
 - A `Slot` is `{id, type, value}`, `type ∈ text|richtext|image|link|button|
   color|space|list`. `image` values carry an optional display `width`;
   `text`/`richtext` carry an optional `color` (see the Guardian, below).
+- **Section background image:** a section with an `image` slot labelled
+  `bgImage` (`BG_IMAGE_LABEL`) renders it as a full-bleed background, applied by
+  `SiteView` (`sectionBackgroundStyle`) in both the public and editor views.
+  Set/cleared via `setSectionBackground` (`lib/sites/service.ts`) — it creates
+  the slot on first use and removes it when cleared — behind
+  `POST /api/[slug]/background` (client, gated by `sectionColors`) and
+  `/api/admin/[slug]/background` (owner, unrestricted). It's structural, so it's
+  not on the undo stack.
 - **Draft vs published:** `site.draft` is the working copy; `site.versions[]` are
   immutable snapshots; `site.publishedVersionId` points at the live one. Publish
   snapshots the draft; rollback just moves the pointer (`lib/sites/service.ts`).

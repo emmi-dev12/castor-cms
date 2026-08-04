@@ -14,7 +14,7 @@ import { useEffect, useRef } from "react";
 import { AddSectionMenu } from "@/components/editor/AddSectionMenu";
 import type { Selection } from "@/components/editor/Inspector";
 import type { Page } from "@/lib/model/types";
-import { SectionView, type EditFn, type EditImageFn } from "./SectionView";
+import { SectionView, sectionBackgroundStyle, type EditFn, type EditImageFn } from "./SectionView";
 
 export interface AdminSectionControls {
   onMove: (sectionId: string, dir: "up" | "down") => void;
@@ -62,15 +62,16 @@ export function SiteView({
     return (
       <div className="bg-white text-slate-900">
         {page.sections.map((section) => (
-          <SectionView
-            key={section.id}
-            section={section}
-            editable={false}
-            onEdit={onEdit}
-            onEditImage={onEditImage}
-            siteSlug={siteSlug}
-            pagePath={page.path}
-          />
+          <div key={section.id} style={sectionBackgroundStyle(section)}>
+            <SectionView
+              section={section}
+              editable={false}
+              onEdit={onEdit}
+              onEditImage={onEditImage}
+              siteSlug={siteSlug}
+              pagePath={page.path}
+            />
+          </div>
         ))}
       </div>
     );
@@ -94,6 +95,7 @@ export function SiteView({
           <div
             key={section.id}
             className={`group relative ${admin ? "border-b border-dashed border-slate-100" : ""}`}
+            style={sectionBackgroundStyle(section)}
             // Click resolves to the nearest editable slot, or the section itself.
             onClick={(e) => {
               if (!onSelect) return;

@@ -1,3 +1,6 @@
+/** The label marking a section slot as its background image. */
+export const BG_IMAGE_LABEL = "bgImage";
+
 // Core content model for the AI-Native CMS.
 // Site -> Pages -> Sections -> Slots. See the approved plan for the design.
 

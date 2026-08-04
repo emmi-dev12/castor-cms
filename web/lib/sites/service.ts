@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import { DEFAULT_PERMISSIONS, colorCapabilityFor, resolvePermissions } from "../guardian/policy";
 import { validate, validateColor } from "../guardian/validate";
 import { clone, findSlot, newId, snapshotVersion } from "../model/content";
+import { BG_IMAGE_LABEL } from "../model/types";
 import type { Permissions, Site, SiteContent, Slot, Submission } from "../model/types";
 import { assessPassword } from "../security/passwords";
 import { getRepository } from "../storage/repository";
@@ -69,6 +70,73 @@ export async function applyEdit(
   if (!(await repo.updateSite(site))) return { ok: false, reason: CONFLICT };
 
   return { ok: true, value: result.value };
+}
+
+/** Accept http(s) and root-relative image sources, like the Guardian does. */
+function cleanImageSrc(input: string): string | null {
+  const src = input.trim();
+  if (src === "") return null;
+  if (src.startsWith("/")) return src;
+  if (/^https?:\/\//i.test(src)) return src;
+  return null;
+}
+
+/**
+ * Set (or clear) a section's background image. A background is a section-wide
+ * design choice, so it's gated by `sectionColors`; the owner editor passes
+ * `unrestricted` to bypass that. Creates the `bgImage` slot on first use and
+ * removes it when cleared, so a section only carries the slot while it has a
+ * background.
+ */
+export async function setSectionBackground(
+  slug: string,
+  sectionId: string,
+  src: string | null,
+  opts: { unrestricted?: boolean } = {},
+): Promise<{ ok: true } | { ok: false; reason: string }> {
+  const repo = await getRepository();
+  const site = await repo.getSite(slug);
+  if (!site) return { ok: false, reason: "Site not found." };
+
+  let target: { section: (typeof site.draft.pages)[number]["sections"][number]; page: (typeof site.draft.pages)[number] } | null = null;
+  for (const page of site.draft.pages) {
+    const section = page.sections.find((s) => s.id === sectionId);
+    if (section) {
+      target = { section, page };
+      break;
+    }
+  }
+  if (!target) return { ok: false, reason: "No such section." };
+
+  if (!opts.unrestricted) {
+    const perms = resolvePermissions(site.permissions, target.page.permissions);
+    if (!perms.sectionColors) {
+      return { ok: false, reason: "You can't change section backgrounds on this site." };
+    }
+  }
+
+  const existing = target.section.slots.find(
+    (s) => s.label === BG_IMAGE_LABEL && s.type === "image",
+  );
+
+  if (src === null) {
+    if (existing) target.section.slots = target.section.slots.filter((s) => s !== existing);
+  } else {
+    const cleaned = cleanImageSrc(src);
+    if (!cleaned) return { ok: false, reason: "Background image must be an http(s) or /site URL." };
+    if (existing && existing.type === "image") existing.value = { ...existing.value, src: cleaned };
+    else
+      target.section.slots.push({
+        id: newId("s"),
+        type: "image",
+        label: BG_IMAGE_LABEL,
+        value: { src: cleaned, alt: "" },
+      });
+  }
+
+  site.updatedAt = new Date().toISOString();
+  if (!(await repo.updateSite(site))) return { ok: false, reason: CONFLICT };
+  return { ok: true };
 }
 
 /** Snapshot the draft into an immutable version and make it live. */

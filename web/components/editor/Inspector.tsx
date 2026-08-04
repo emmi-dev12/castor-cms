@@ -11,6 +11,7 @@
 import { EditableColor } from "./EditableColor";
 import { EditableSpace } from "./EditableSpace";
 import { ALLOWED_PALETTE, capabilityFor, isTextColorLabel } from "@/lib/guardian/policy";
+import { BG_IMAGE_LABEL } from "@/lib/model/types";
 import type { LinkValue, Page, Permissions, Slot } from "@/lib/model/types";
 
 export interface Selection {
@@ -92,12 +93,15 @@ export function Inspector({
   permissions,
   onEdit,
   onEditColor,
+  onEditBackground,
 }: {
   selection: Selection | null;
   page: Page;
   permissions: Permissions;
   onEdit: (slotId: string, value: Slot["value"]) => void;
   onEditColor: (slotId: string, color: string | null) => void;
+  /** Set (`src`) or clear (`null`) the selected section's background image. */
+  onEditBackground: (sectionId: string, src: string | null) => void;
 }) {
   const section = selection ? page.sections.find((s) => s.id === selection.sectionId) : undefined;
   const slot: Slot | undefined =
@@ -129,15 +133,21 @@ export function Inspector({
   });
   const sectionSpaces = section.slots.filter((s) => s.type === "space" && permissions.spacing);
 
+  // The section's background image (if any) — a section-wide design choice, so
+  // it's offered whenever the client may change section colours.
+  const bgSlot = section.slots.find((s) => s.label === BG_IMAGE_LABEL && s.type === "image");
+  const bgSrc = bgSlot && bgSlot.type === "image" ? bgSlot.value.src : "";
+  const canBackground = permissions.sectionColors;
+
   const selectedName = slot
     ? humanize(slot.label ?? slot.type)
     : `${section.type} section`;
 
+  const hasSectionControls = sectionColours.length > 0 || sectionSpaces.length > 0 || canBackground;
   const nothing =
     !(isText && permissions.textColor) &&
     !(isLink && (permissions.links || permissions.sectionColors)) &&
-    sectionColours.length === 0 &&
-    sectionSpaces.length === 0;
+    !hasSectionControls;
 
   return (
     <div className="space-y-4">
@@ -191,9 +201,44 @@ export function Inspector({
             </div>
           ) : null}
 
-          {(sectionColours.length > 0 || sectionSpaces.length > 0) && (
+          {hasSectionControls && (
             <div className="space-y-2 border-t border-slate-100 pt-3">
               <p className="text-xs font-medium text-slate-700">This section</p>
+
+              {canBackground ? (
+                <div className="rounded-lg border border-slate-200 bg-white p-3">
+                  <div className="mb-1.5 flex items-center justify-between">
+                    <span className="text-sm font-medium text-slate-700">Background image</span>
+                    {bgSrc ? (
+                      <button
+                        type="button"
+                        onClick={() => onEditBackground(section.id, null)}
+                        className="text-xs text-slate-500 underline hover:text-slate-800"
+                      >
+                        Remove
+                      </button>
+                    ) : null}
+                  </div>
+                  {bgSrc ? (
+                    <div
+                      className="mb-2 h-16 w-full rounded border border-slate-200 bg-cover bg-center"
+                      style={{ backgroundImage: `url("${bgSrc.replace(/"/g, "%22")}")` }}
+                    />
+                  ) : null}
+                  <input
+                    key={section.id + bgSrc}
+                    defaultValue={bgSrc}
+                    placeholder="Paste an image URL"
+                    spellCheck={false}
+                    onBlur={(e) => {
+                      const src = e.target.value.trim();
+                      if (src !== bgSrc) onEditBackground(section.id, src || null);
+                    }}
+                    className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-xs text-slate-800"
+                  />
+                </div>
+              ) : null}
+
               {sectionColours.map((s) => (
                 <EditableColor
                   key={s.id}
