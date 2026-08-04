@@ -10,7 +10,7 @@ Hand a client the keys to their own site. They change the words and the photos
 in the browser — and **can't** move a section, pick a colour that isn't yours,
 or touch the code.
 
-Free · source-available · self-hosted &nbsp;•&nbsp; [Try the editor ↗](https://castorcms.vercel.app/#demo) &nbsp;•&nbsp; [Setup guide](SETUP.md) &nbsp;•&nbsp; [Licence](LICENSE.md)
+Free · open source (AGPL-3.0) · self-hosted &nbsp;•&nbsp; [Try the editor ↗](https://castorcms.vercel.app/#demo) &nbsp;•&nbsp; [Setup guide](SETUP.md) &nbsp;•&nbsp; [Licence](LICENSE.md)
 
 </div>
 
@@ -135,8 +135,35 @@ The app lives in [`web/`](web) (the repo root has a space in its name, which npm
 rejects as a package name). Architecture notes for contributors are in
 [`CLAUDE.md`](CLAUDE.md); the hosting runbook is in [`DEPLOY.md`](DEPLOY.md).
 
+## Roadmap & known limits
+
+Castor is open source and early. It does one thing well — guarded content
+editing for content sites — and deliberately isn't trying to be more than that.
+
+**What it doesn't do (by design or not yet):**
+
+- **It's for content sites, not apps.** It renders content from a database; it
+  doesn't run your framework. A React/Next source project can't be imported —
+  build it first and import the output.
+- **Imported sites are frozen.** A ZIP import is a snapshot: every word is
+  editable, but it won't restructure in the editor or pick up renderer
+  improvements the way a native Castor site does.
+- **Images are referenced by URL.** You paste an image link; there's no built-in
+  upload/host step yet.
+- **One owner.** A single admin password guards the dashboard — no multi-user or
+  team roles.
+- **Undo/redo covers content**, not structural changes (adding/moving/deleting
+  sections and pages).
+- **Free tiers are finite.** MongoDB Atlas M0 is 512 MB shared across every site
+  and imported asset — plenty for brochure sites, tight for image-heavy imports.
+
+**Ideas worth building (PRs welcome):** image uploads to blob storage, more
+section types, richer form handling and notifications, team roles, and per-page
+permission presets. Open an issue if you want to take one on.
+
 ## Licence
 
-Source-available and free — use it commercially for as many client sites as you
-like. The one thing [the licence](LICENSE.md) asks is that you don't resell
-Castor itself.
+Castor is free and open source under the [GNU AGPL-3.0](LICENSE.md). Use it,
+modify it, run it for as many clients as you like, commercially — the one
+condition is that anything you build on it (including a version you host as a
+service) stays open under the same licence. You can't take Castor closed-source.

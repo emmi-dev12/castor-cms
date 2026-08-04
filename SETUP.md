@@ -206,5 +206,6 @@ written for AI coding agents, but it's the most complete map of the codebase.
 
 ---
 
-Licensed under [LICENSE.md](LICENSE.md). Short version: build whatever you want
-for as many clients as you want; don't republish or resell the source.
+Licensed under the [GNU AGPL-3.0](LICENSE.md). Short version: use it, change it,
+and build for as many clients as you want — but anything you ship or host based
+on it stays open source under the same licence.

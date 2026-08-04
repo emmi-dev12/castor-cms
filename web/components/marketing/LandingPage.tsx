@@ -272,7 +272,7 @@ export function LandingPage() {
               </h2>
               <p className="closer__body">
                 The source is public and yours to run — for as many client sites as you like, at no
-                cost. The only thing the licence asks is that you don&rsquo;t resell Castor itself.
+                cost. It&rsquo;s open source (AGPL) — anything you build on it stays open too.
               </p>
               <div className="closer__cta">
                 <a className="btn btn--mark" href={REPO_URL} {...external}>
