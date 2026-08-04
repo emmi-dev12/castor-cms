@@ -1,5 +1,5 @@
-// Set or clear a section's background image (owner master editor, local only).
-// Unrestricted — the owner isn't limited by the client's permissions.
+// Owner endpoint: set or clear a section's background image, unrestricted by
+// the client's permissions. Local admin only.
 
 import { requireAdminApi } from "@/lib/auth/adminSession";
 import { CONFLICT, setSectionBackground } from "@/lib/sites/service";
@@ -7,7 +7,6 @@ import { CONFLICT, setSectionBackground } from "@/lib/sites/service";
 export async function POST(request: Request, { params }: { params: Promise<{ slug: string }> }) {
   const denied = await requireAdminApi();
   if (denied) return denied;
-
   const { slug } = await params;
   const body = (await request.json().catch(() => ({}))) as {
     sectionId?: string;
@@ -16,7 +15,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
   if (!body.sectionId) {
     return Response.json({ ok: false, reason: "Missing sectionId." }, { status: 400 });
   }
-
   const result = await setSectionBackground(slug, body.sectionId, body.src ?? null, {
     unrestricted: true,
   });
