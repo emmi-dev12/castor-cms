@@ -62,7 +62,9 @@ export type Slot =
   | { id: string; type: "text" | "richtext"; label?: string; value: string; color?: string }
   | { id: string; type: "color" | "space"; label?: string; value: string }
   | { id: string; type: "image"; label?: string; value: ImageValue }
-  | { id: string; type: "link" | "button"; label?: string; value: LinkValue }
+  /** A button/link carries its own optional colour (its background), so one
+   *  button can differ from the section's shared accent. Unset = inherit. */
+  | { id: string; type: "link" | "button"; label?: string; value: LinkValue; color?: string }
   | { id: string; type: "list"; label?: string; value: string[] };
 
 /**

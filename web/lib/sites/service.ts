@@ -2,7 +2,7 @@
 // Server-only.
 
 import bcrypt from "bcryptjs";
-import { DEFAULT_PERMISSIONS, resolvePermissions } from "../guardian/policy";
+import { DEFAULT_PERMISSIONS, colorCapabilityFor, resolvePermissions } from "../guardian/policy";
 import { validate, validateColor } from "../guardian/validate";
 import { clone, findSlot, newId, snapshotVersion } from "../model/content";
 import type { Permissions, Site, SiteContent, Slot, Submission } from "../model/types";
@@ -37,18 +37,19 @@ export async function applyEdit(
   const perms = resolvePermissions(site.permissions, found.page.permissions);
   const slot = found.slot as Slot;
 
-  // A colour change is a separate permission from the words it colours, so an
-  // edit carrying both has to clear both gates before either is written.
+  // A colour change is a separate permission from the value it accompanies, so
+  // an edit carrying both has to clear both gates before either is written. The
+  // governing permission depends on what carries the colour: text colours words
+  // (textColor); a button colours its background (sectionColors).
+  const colourCap = colorCapabilityFor(slot);
   let colour: string | null | undefined;
   if (proposedColor !== undefined) {
-    if (slot.type !== "text" && slot.type !== "richtext") {
-      return { ok: false, reason: "Only text can carry its own colour." };
-    }
+    if (!colourCap) return { ok: false, reason: "This element can't carry its own colour." };
     if (proposedColor === null) {
-      if (!perms.textColor) return { ok: false, reason: "You can't change text colours." };
+      if (!perms[colourCap]) return { ok: false, reason: "You can't change this colour." };
       colour = null;
     } else {
-      const checked = validateColor(proposedColor, perms, "textColor");
+      const checked = validateColor(proposedColor, perms, colourCap);
       if (!checked.ok) return checked;
       colour = checked.value as string;
     }
@@ -59,9 +60,10 @@ export async function applyEdit(
 
   // Mutate the located slot in place (findSlot returned live references).
   slot.value = result.value as never;
-  if (colour !== undefined && (slot.type === "text" || slot.type === "richtext")) {
-    if (colour === null) delete slot.color;
-    else slot.color = colour;
+  if (colour !== undefined && colourCap) {
+    const coloured = slot as { color?: string };
+    if (colour === null) delete coloured.color;
+    else coloured.color = colour;
   }
   site.updatedAt = new Date().toISOString();
   if (!(await repo.updateSite(site))) return { ok: false, reason: CONFLICT };

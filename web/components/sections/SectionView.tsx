@@ -33,35 +33,29 @@ function EditableLink({
   onEdit?: EditFn;
 }) {
   const value: LinkValue = slot.value;
-  const label = (
-    <EditableText
-      slotId={slot.id}
-      initial={value.text}
-      editable={editable}
-      onEdit={(id, text) => onEdit?.(id, { text, href: value.href })}
-    />
-  );
+  // The button's own colour wins over whatever the section passed as its accent.
+  const styled: React.CSSProperties | undefined = slot.color
+    ? { ...style, backgroundColor: slot.color }
+    : style;
+
   if (!editable) {
     return (
-      <a href={value.href} className={className} style={style}>
+      <a href={value.href} className={className} style={styled}>
         {value.text}
       </a>
     );
   }
+  // In the editor the whole button is one selectable unit: carrying the slot id
+  // on the wrapper means clicking the padding (not just the words) selects it,
+  // and its colour and link target are edited in the sidebar Inspector.
   return (
-    <span className={`${className} inline-flex items-center gap-1`} style={style}>
-      {label}
-      <button
-        type="button"
-        title={`Link target: ${value.href}`}
-        className="text-xs opacity-60 hover:opacity-100"
-        onClick={() => {
-          const href = window.prompt("Link target (URL):", value.href);
-          if (href !== null) onEdit?.(slot.id, { text: value.text, href: href.trim() });
-        }}
-      >
-        🔗
-      </button>
+    <span data-slot-id={slot.id} className={`${className} inline-flex items-center`} style={styled}>
+      <EditableText
+        slotId={slot.id}
+        initial={value.text}
+        editable={editable}
+        onEdit={(id, text) => onEdit?.(id, { text, href: value.href })}
+      />
     </span>
   );
 }

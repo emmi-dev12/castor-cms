@@ -4,6 +4,7 @@
   "private": true,
   "author": "Matthew Hapnicks",
   "license": "SEE LICENSE IN ../LICENSE.md",
+  "description": "Free, source-available CMS: hand clients the keys to their site \u2014 they edit content in the browser, guardrails keep the layout and code safe.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

@@ -15,6 +15,7 @@ import {
   NO_PERMISSIONS,
   SPACING_SCALE,
   capabilityFor,
+  colorCapabilityFor,
   resolvePermissions,
 } from "./policy";
 import { validate, validateColor } from "./validate";
@@ -110,6 +111,26 @@ test("textColor label matching ignores case and separators", () => {
   assert.equal(capabilityFor({ type: "color", label: "text-color" }), "textColor");
   assert.equal(capabilityFor({ type: "color", label: "Text Color" }), "textColor");
   assert.equal(capabilityFor({ type: "color", label: "bg" }), "sectionColors");
+});
+
+// ── A button's own colour ────────────────────────────────────────────────────
+// Text colours words (textColor); a button colours its background, which is a
+// design colour (sectionColors). They must not be conflated.
+
+test("colorCapabilityFor maps slots to the right colour permission", () => {
+  assert.equal(colorCapabilityFor({ type: "text" }), "textColor");
+  assert.equal(colorCapabilityFor({ type: "richtext" }), "textColor");
+  assert.equal(colorCapabilityFor({ type: "button" }), "sectionColors");
+  assert.equal(colorCapabilityFor({ type: "link" }), "sectionColors");
+  assert.equal(colorCapabilityFor({ type: "image" }), null);
+});
+
+test("a button colour is gated by sectionColors, not textColor", () => {
+  const p = perms({ links: true, textColor: true, colorRange: "any" });
+  // textColor is on but sectionColors is off: a button colour is still refused.
+  assert.equal(validateColor("#047857", p, "sectionColors").ok, false);
+  const q = perms({ links: true, sectionColors: true, colorRange: "any" });
+  assert.equal(validateColor("#047857", q, "sectionColors").ok, true);
 });
 
 // ── colorRange ───────────────────────────────────────────────────────────────

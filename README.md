@@ -60,9 +60,13 @@ link.
   images, links, text colour, section colours, spacing. Any combination, and a
   page can override the site's. Enforced by **the Guardian**, a deterministic
   policy engine every edit passes through before it touches the draft.
-- **Colour on a leash** — a client can recolour a single heading with the native
-  OS colour picker, or be held to the swatches you chose. Per-element, and a
-  separate permission from editing the words.
+- **Click to edit** — click anything on the page and it's selected; the sidebar
+  shows the controls for exactly that. A heading's colour, a button's colour and
+  link, a section's background and spacing — always scoped to what you picked, so
+  you can see what you're changing.
+- **Colour on a leash** — recolour a single heading or one button with the native
+  OS colour picker, or hold the client to the swatches you chose. Per-element, and
+  a separate permission from editing the words.
 - **Draft → Publish → Rollback** — edits land in a private draft; publishing
   snapshots the whole site; rollback moves the live pointer to any past version.
   Every version is kept.

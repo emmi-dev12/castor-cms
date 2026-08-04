@@ -18,7 +18,7 @@ import {
 } from "@/components/editor/Walkthrough";
 import { SiteView } from "@/components/sections/SiteView";
 import { clone, findSlot } from "@/lib/model/content";
-import { CAPABILITY_LABELS } from "@/lib/guardian/policy";
+import { CAPABILITY_LABELS, colorCapabilityFor } from "@/lib/guardian/policy";
 import type { ImageValue, Page, Permissions, Slot } from "@/lib/model/types";
 import { Inspector, type Selection } from "@/components/editor/Inspector";
 import { useEditHistory, type SlotSnapshot } from "@/components/editor/useEditHistory";
@@ -209,7 +209,8 @@ export function EditorApp({
     const found = findSlot({ pages: [content] }, slotId);
     if (!found) return null;
     const slot = found.slot as Slot;
-    const color = slot.type === "text" || slot.type === "richtext" ? slot.color : undefined;
+    // Text and buttons both carry an optional `color`; other slots don't.
+    const color = colorCapabilityFor(slot) ? (slot as { color?: string }).color : undefined;
     return { value: slot.value, color };
   }
 
@@ -224,9 +225,10 @@ export function EditorApp({
     if (!found) return;
     const slot = found.slot as Slot;
     slot.value = snap.value as never;
-    if (withColor && (slot.type === "text" || slot.type === "richtext")) {
-      if (snap.color === undefined) delete slot.color;
-      else slot.color = snap.color;
+    if (withColor && colorCapabilityFor(slot)) {
+      const coloured = slot as { color?: string };
+      if (snap.color === undefined) delete coloured.color;
+      else coloured.color = snap.color;
     }
     setContent(next);
 

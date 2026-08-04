@@ -120,6 +120,19 @@ export function capabilityFor(slot: Pick<Slot, "type" | "label">): Capability | 
   }
 }
 
+/**
+ * Which permission governs a slot's *own* colour, if it can carry one. Text
+ * nodes colour their words (textColor); a button colours its background, which
+ * is a design colour (sectionColors). Anything else can't carry a colour.
+ */
+export function colorCapabilityFor(
+  slot: Pick<Slot, "type">,
+): "textColor" | "sectionColors" | null {
+  if (slot.type === "text" || slot.type === "richtext") return "textColor";
+  if (slot.type === "link" || slot.type === "button") return "sectionColors";
+  return null;
+}
+
 /** Whether a slot of this type may be edited at all under these permissions. */
 export function canEditSlotType(perms: Permissions, type: SlotType, label?: string): boolean {
   const cap = capabilityFor({ type, label });

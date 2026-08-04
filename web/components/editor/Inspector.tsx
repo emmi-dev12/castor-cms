@@ -11,7 +11,7 @@
 import { EditableColor } from "./EditableColor";
 import { EditableSpace } from "./EditableSpace";
 import { ALLOWED_PALETTE, capabilityFor, isTextColorLabel } from "@/lib/guardian/policy";
-import type { Page, Permissions, Slot } from "@/lib/model/types";
+import type { LinkValue, Page, Permissions, Slot } from "@/lib/model/types";
 
 export interface Selection {
   sectionId: string;
@@ -26,20 +26,22 @@ function humanize(label: string): string {
     .replace(/^./, (c) => c.toUpperCase());
 }
 
-/** Inline swatches for a single text node's own colour (a separate permission
- *  from the section's colours, so it gets its own control). */
-function TextColour({
+/** Inline swatches for one element's own colour (text or a button background) —
+ *  a separate permission from the section's colours, so it gets its own control. */
+function ColourSwatches({
+  heading,
   value,
   range,
   onPick,
 }: {
+  heading: string;
   value?: string;
   range: Permissions["colorRange"];
   onPick: (color: string | null) => void;
 }) {
   return (
     <div>
-      <p className="mb-1.5 text-xs font-medium text-slate-700">This text</p>
+      <p className="mb-1.5 text-xs font-medium text-slate-700">{heading}</p>
       <div className="flex flex-wrap items-center gap-1.5">
         {ALLOWED_PALETTE.map((c) => (
           <button
@@ -94,7 +96,7 @@ export function Inspector({
   selection: Selection | null;
   page: Page;
   permissions: Permissions;
-  onEdit: (slotId: string, value: string) => void;
+  onEdit: (slotId: string, value: Slot["value"]) => void;
   onEditColor: (slotId: string, color: string | null) => void;
 }) {
   const section = selection ? page.sections.find((s) => s.id === selection.sectionId) : undefined;
@@ -106,14 +108,18 @@ export function Inspector({
   if (!selection || !section) {
     return (
       <p className="rounded-lg border border-dashed border-slate-300 p-3 text-xs leading-relaxed text-slate-500">
-        Click anything on the page to edit it. Type to change words; colours and
-        spacing for what you picked show up here.
+        Click anything on the page to edit it. Type to change words; colours,
+        links and spacing for what you picked show up here.
       </p>
     );
   }
 
   const isText = slot?.type === "text" || slot?.type === "richtext";
   const textColour = isText ? (slot as { color?: string }).color : undefined;
+
+  const isLink = slot?.type === "link" || slot?.type === "button";
+  const linkValue = isLink ? (slot as { value: LinkValue }).value : undefined;
+  const buttonColour = isLink ? (slot as { color?: string }).color : undefined;
 
   // The section's own design slots the client may change.
   const sectionColours = section.slots.filter((s) => {
@@ -129,6 +135,7 @@ export function Inspector({
 
   const nothing =
     !(isText && permissions.textColor) &&
+    !(isLink && (permissions.links || permissions.sectionColors)) &&
     sectionColours.length === 0 &&
     sectionSpaces.length === 0;
 
@@ -144,11 +151,44 @@ export function Inspector({
       ) : (
         <>
           {isText && permissions.textColor && slot ? (
-            <TextColour
+            <ColourSwatches
+              heading="This text"
               value={textColour}
               range={permissions.colorRange}
               onPick={(c) => onEditColor(slot.id, c)}
             />
+          ) : null}
+
+          {isLink && linkValue && slot ? (
+            <div className="space-y-3">
+              {permissions.links ? (
+                <label className="block">
+                  <span className="mb-1 block text-xs font-medium text-slate-700">Link opens</span>
+                  <input
+                    key={slot.id}
+                    defaultValue={linkValue.href}
+                    placeholder="https://…  ·  /page  ·  #section"
+                    spellCheck={false}
+                    onBlur={(e) => {
+                      const href = e.target.value.trim();
+                      if (href !== linkValue.href) onEdit(slot.id, { text: linkValue.text, href });
+                    }}
+                    className="w-full rounded-md border border-slate-300 px-2 py-1.5 font-mono text-xs text-slate-800"
+                  />
+                  <span className="mt-1 block text-[11px] text-slate-400">
+                    The button&rsquo;s words are edited by clicking it on the page.
+                  </span>
+                </label>
+              ) : null}
+              {permissions.sectionColors ? (
+                <ColourSwatches
+                  heading="Button colour"
+                  value={buttonColour}
+                  range={permissions.colorRange}
+                  onPick={(c) => onEditColor(slot.id, c)}
+                />
+              ) : null}
+            </div>
           ) : null}
 
           {(sectionColours.length > 0 || sectionSpaces.length > 0) && (

@@ -4,7 +4,7 @@
 // site's draft and persists; Publish still snapshots the draft as usual.
 
 import bcrypt from "bcryptjs";
-import { ALL_PERMISSIONS } from "../guardian/policy";
+import { ALL_PERMISSIONS, colorCapabilityFor } from "../guardian/policy";
 import { validate, validateColor } from "../guardian/validate";
 import { clone, findSlot, newId } from "../model/content";
 import { templateSection } from "../model/sectionTemplates";
@@ -70,11 +70,13 @@ export async function adminApplyEdit(
   const result = validate(slot, proposedValue, ALL_PERMISSIONS);
   if (!result.ok) return result;
   slot.value = result.value as never;
-  if (proposedColor !== undefined && (slot.type === "text" || slot.type === "richtext")) {
-    const checked = proposedColor === null ? null : validateColor(proposedColor, ALL_PERMISSIONS, "textColor");
+  const colourCap = colorCapabilityFor(slot);
+  if (proposedColor !== undefined && colourCap) {
+    const coloured = slot as { color?: string };
+    const checked = proposedColor === null ? null : validateColor(proposedColor, ALL_PERMISSIONS, colourCap);
     if (checked && !checked.ok) return checked;
-    if (checked === null) delete slot.color;
-    else slot.color = checked.value as string;
+    if (checked === null) delete coloured.color;
+    else coloured.color = checked.value as string;
   }
   site.updatedAt = new Date().toISOString();
   if (!(await repo.updateSite(site))) return { ok: false, reason: CONFLICT };
