@@ -7,7 +7,7 @@
 // changes and the two ingest paths can't drift.
 
 import { createHash } from "node:crypto";
-import { parse } from "node-html-parser";
+import { NodeType, parse, type HTMLElement } from "node-html-parser";
 import { TOKEN_DELIM } from "../ingest/tokens";
 import type { Slot } from "../model/types";
 
@@ -197,19 +197,41 @@ export function prepareHtml(html: string, ctx: RewriteContext, maxSlots = 400): 
     slots.push({ id, type: "image", label: "image", value: { src, alt } });
   }
 
-  // 3. Text leaves — elements whose content is text only.
+  // 3. Every text node becomes an editable slot — not just leaf elements, so
+  //    the words in mixed content ("Buy <b>now</b> or later") are all editable,
+  //    not only the ones that happen to sit alone in a tag. Each run of text is
+  //    wrapped in a tagged inline <span>, which the render-time token swap fills
+  //    back in. Whitespace on either side is kept outside the span so inline
+  //    spacing ("Buy now") survives.
   const body = root.querySelector("body") ?? root;
-  for (const el of body.querySelectorAll("*")) {
-    if (slots.length >= maxSlots) break;
-    if (SKIP_TAGS.has(el.tagName?.toUpperCase() ?? "")) continue;
-    if (el.querySelectorAll("*").length > 0) continue; // not a leaf
-    const text = el.text.trim();
-    if (!text) continue;
-    const id = `s${i++}`;
-    el.setAttribute("data-slot-id", id);
-    el.set_content(tok(id));
-    slots.push({ id, type: "text", label: text.slice(0, 24), value: text });
-  }
+  const tagTextNodes = (el: HTMLElement): void => {
+    if (SKIP_TAGS.has(el.tagName?.toUpperCase() ?? "")) return;
+    // Depth-first, children before parent: a child's content is finalised before
+    // the parent re-serialises it, so nested mixed content is captured once.
+    for (const child of el.childNodes) {
+      if (child.nodeType === NodeType.ELEMENT_NODE) tagTextNodes(child as HTMLElement);
+    }
+    const hasText = el.childNodes.some(
+      (n) => n.nodeType === NodeType.TEXT_NODE && n.rawText.trim() !== "",
+    );
+    if (!hasText) return;
+
+    const rebuilt = el.childNodes
+      .map((n) => {
+        if (n.nodeType !== NodeType.TEXT_NODE) return n.toString();
+        const raw = n.rawText;
+        const text = raw.trim();
+        if (!text || slots.length >= maxSlots) return raw;
+        const id = `s${i++}`;
+        slots.push({ id, type: "text", label: text.slice(0, 24), value: text });
+        const lead = /^\s/.test(raw) ? " " : "";
+        const trail = /\s$/.test(raw) ? " " : "";
+        return `${lead}<span data-slot-id="${id}">${tok(id)}</span>${trail}`;
+      })
+      .join("");
+    el.set_content(rebuilt);
+  };
+  tagTextNodes(body as HTMLElement);
 
   const headEl = root.querySelector("head");
   const titleText = root.querySelector("title")?.text?.trim();

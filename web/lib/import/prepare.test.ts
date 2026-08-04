@@ -7,7 +7,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { zipSync } from "fflate";
-import { TOKEN_DELIM } from "../ingest/tokens";
+import { TOKEN_DELIM, applySlots } from "../ingest/tokens";
 import {
   contentTypeFor,
   isExternalRef,
@@ -199,4 +199,21 @@ test("slot count is bounded on a huge page", () => {
   const html = `<html><body>${"<p>x</p>".repeat(50)}</body></html>`;
   const out = prepareHtml(html, ctx(), 10);
   assert.equal(out.slots.length <= 10, true);
+});
+
+test("every word in mixed content becomes editable, not just leaf elements", () => {
+  const html = `<html><body><p>Buy <strong>now</strong> or later</p></body></html>`;
+  const out = prepareHtml(html, ctx());
+  // The old leaf-only tagger caught "now" but dropped "Buy" and "or later".
+  assert.deepEqual(
+    out.slots.filter((s) => s.type === "text").map((s) => s.value).sort(),
+    ["Buy", "now", "or later"],
+  );
+});
+
+test("inline spacing survives extraction (Buy now, not Buynow)", () => {
+  const html = `<html><body><p>Buy <strong>now</strong></p></body></html>`;
+  const out = prepareHtml(html, ctx());
+  const rendered = applySlots(out.body, out.slots).replace(/ data-slot-id="[^"]*"/g, "");
+  assert.equal(rendered.includes("<span>Buy</span> <strong><span>now</span></strong>"), true);
 });
