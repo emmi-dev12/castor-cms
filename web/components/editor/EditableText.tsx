@@ -3,13 +3,12 @@
 // An inline-editable text node. Uncontrolled contentEditable: initial value is
 // rendered once and committed on blur, so React re-renders never disturb the caret.
 //
-// Each text node also carries its own optional colour, so two headings in the
-// same section can differ. The colour control only appears when the site's
-// permissions allow it — see EditorContext.
+// Each text node carries its own optional colour (so two headings in one section
+// can differ). Colour is picked in the sidebar Inspector when this node is
+// selected, not here — this component only renders the words and applies the
+// colour it's given.
 
 import { useState } from "react";
-import { ColorPicker } from "./ColorPicker";
-import { useEditorCapabilities } from "./EditorContext";
 
 export function EditableText({
   slotId,
@@ -44,8 +43,6 @@ export function EditableText({
     setSeenProp(initial);
     setStartValue(initial);
   }
-  const [picking, setPicking] = useState(false);
-  const caps = useEditorCapabilities();
   const Tag = as;
 
   // The slot's own colour wins over whatever the section set.
@@ -59,7 +56,7 @@ export function EditableText({
     );
   }
 
-  const field = (
+  return (
     <Tag
       contentEditable
       suppressContentEditableWarning
@@ -77,36 +74,5 @@ export function EditableText({
     >
       {startValue}
     </Tag>
-  );
-
-  if (!caps.canEditTextColor || !caps.onEditColor) return field;
-
-  return (
-    // `group` reveals the swatch on hover/focus so the page isn't peppered with
-    // controls; it stays visible while the picker is open.
-    <span className="group relative inline-block">
-      {field}
-      <button
-        type="button"
-        title="Text colour"
-        aria-label="Change text colour"
-        onClick={() => setPicking((p) => !p)}
-        className={`ml-1 inline-block h-4 w-4 shrink-0 translate-y-0.5 rounded border border-slate-400 align-middle transition ${
-          picking ? "opacity-100 ring-2 ring-slate-900/20" : "opacity-0 group-hover:opacity-100 focus:opacity-100"
-        }`}
-        style={{ backgroundColor: color || "transparent" }}
-      />
-      {picking ? (
-        <ColorPicker
-          value={color}
-          range={caps.colorRange}
-          onChange={(c) => {
-            caps.onEditColor?.(slotId, c);
-            setPicking(false);
-          }}
-          onClose={() => setPicking(false)}
-        />
-      ) : null}
-    </span>
   );
 }

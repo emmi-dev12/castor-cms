@@ -8,8 +8,6 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { EditableColor } from "@/components/editor/EditableColor";
-import { EditableSpace } from "@/components/editor/EditableSpace";
 import { ImageEditorModal } from "@/components/editor/ImageEditorModal";
 import { AdminPasswordReset } from "@/components/editor/AdminPasswordReset";
 import { PasswordChange } from "@/components/editor/PasswordChange";
@@ -22,7 +20,7 @@ import { SiteView } from "@/components/sections/SiteView";
 import { clone, findSlot } from "@/lib/model/content";
 import { CAPABILITY_LABELS } from "@/lib/guardian/policy";
 import type { ImageValue, Page, Permissions, Slot } from "@/lib/model/types";
-import { EditorCapabilitiesProvider } from "@/components/editor/EditorContext";
+import { Inspector, type Selection } from "@/components/editor/Inspector";
 import { useEditHistory, type SlotSnapshot } from "@/components/editor/useEditHistory";
 
 interface VersionMeta {
@@ -113,6 +111,7 @@ export function EditorApp({
     slotId: string;
     value: ImageValue;
   } | null>(null);
+  const [selection, setSelection] = useState<Selection | null>(null);
   const [tourOpen, setTourOpen] = useState(false);
   const [tourRun, setTourRun] = useState(0); // bumped per run to remount the tour
 
@@ -330,23 +329,6 @@ export function EditorApp({
     router.refresh();
   }
 
-  // color/space share a union member with text/richtext (all string-valued), so
-  // we filter by type and normalize to a plain shape rather than type-narrowing.
-  const humanize = (label: string) =>
-    label.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/[-_]/g, " ");
-  const tokenSlots = (kind: "color" | "space") =>
-    content.sections.flatMap((sec) =>
-      sec.slots
-        .filter((s) => s.type === kind)
-        .map((s) => ({
-          id: s.id,
-          label: humanize(s.label ?? kind),
-          value: s.value as string,
-        })),
-    );
-  const colorSlots = tokenSlots("color");
-  const spaceSlots = tokenSlots("space");
-
   // Cmd+Z / Ctrl+Z, and Cmd+Shift+Z / Ctrl+Y to redo.
   //
   // Deliberately NOT intercepted while the caret is in a text field: there the
@@ -381,15 +363,10 @@ export function EditorApp({
   });
 
   // The owner is never limited by the client's permissions.
-  const capabilities = {
-    canEditTextColor: admin || permissions.textColor,
-    colorRange: admin ? ("any" as const) : permissions.colorRange,
-    onEditColor,
-  };
+  const effectivePerms = admin ? { ...permissions, textColor: true, sectionColors: true, spacing: true, colorRange: "any" as const, spacingRange: "any" as const } : permissions;
 
   return (
-    <EditorCapabilitiesProvider value={capabilities}>
-      <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-slate-100">
         <header className="sticky top-0 z-10 flex flex-wrap items-center gap-3 border-b border-slate-200 bg-white px-4 py-3 shadow-sm">
           <div className="font-semibold text-slate-900">{siteName}</div>
           <span className="rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800">
@@ -477,6 +454,8 @@ export function EditorApp({
               page={content}
               siteSlug={slug}
               editable
+              selection={selection}
+              onSelect={setSelection}
               onEdit={onEdit}
               onEditImage={(slotId, value) =>
                 setImageEditing({ slotId, value })
@@ -541,35 +520,16 @@ export function EditorApp({
               </section>
             )}
 
-            {(colorSlots.length > 0 || spaceSlots.length > 0) && (
-              <section data-tour="design">
-                <h2 className="mb-2 text-sm font-semibold text-slate-700">
-                  Design
-                </h2>
-                <div className="space-y-2">
-                  {colorSlots.map((s) => (
-                    <EditableColor
-                      key={s.id}
-                      slotId={s.id}
-                      label={s.label}
-                      value={s.value}
-                      permissions={permissions}
-                      onEdit={(id, v) => onEdit(id, v)}
-                    />
-                  ))}
-                  {spaceSlots.map((s) => (
-                    <EditableSpace
-                      key={s.id}
-                      slotId={s.id}
-                      label={s.label}
-                      value={s.value}
-                      permissions={permissions}
-                      onEdit={(id, v) => onEdit(id, v)}
-                    />
-                  ))}
-                </div>
-              </section>
-            )}
+            <section data-tour="design">
+              <h2 className="mb-2 text-sm font-semibold text-slate-700">Edit</h2>
+              <Inspector
+                selection={selection}
+                page={content}
+                permissions={effectivePerms}
+                onEdit={onEdit}
+                onEditColor={onEditColor}
+              />
+            </section>
 
             {!admin && (
               <div data-tour="account">
@@ -666,7 +626,6 @@ export function EditorApp({
             }}
           />
         )}
-      </div>
-    </EditorCapabilitiesProvider>
+    </div>
   );
 }
