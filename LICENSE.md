@@ -1,13 +1,4 @@
-Castor — a CMS for handing clients the keys to their site, not the code.
 Copyright (C) 2026 Matthew Hapnicks
-
-This program is free software: you can redistribute it and/or modify it under
-the terms of the GNU Affero General Public License as published by the Free
-Software Foundation, either version 3 of the License, or (at your option) any
-later version. It is distributed WITHOUT ANY WARRANTY; see the License for
-details. The full text follows.
-
-----------------------------------------------------------------------
 
                     GNU AFFERO GENERAL PUBLIC LICENSE
                        Version 3, 19 November 2007
