@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-05T22:10:00Z",
+  "title": "Design System: Castor — Taped Line",
+  "extensions": {
+    "colorMeta": {
+      "canvas": { "role": "neutral", "displayName": "Raw Canvas", "canonical": "#f4efe4", "tonalRamp": ["#342b19", "#61512e", "#8b7441", "#b09559", "#c4b082", "#d8caac", "#e8e0cf", "#f7f4ee"] },
+      "canvas-recessed": { "role": "neutral", "displayName": "Recessed Canvas", "canonical": "#ebe1c9", "tonalRamp": ["#352c17", "#63532c", "#8e763e", "#b49855", "#c7b27f", "#daccaa", "#e9e1cd", "#f7f4ed"] },
+      "card": { "role": "neutral", "displayName": "Paper White", "canonical": "#fffdf6", "tonalRamp": ["#473806", "#84690b", "#bd960f", "#edbe1d", "#f1cf55", "#f6df8e", "#faecbd", "#fdf8e7"] },
+      "ink": { "role": "neutral", "displayName": "Near-Black Ink", "canonical": "#18130d", "tonalRamp": ["#30271d", "#594935", "#80684c", "#a48766", "#baa58c", "#d1c3b2", "#e4dcd2", "#f5f3ef"] },
+      "ink-soft": { "role": "neutral", "displayName": "Warm Brown-Black", "canonical": "#5b4d3a", "tonalRamp": ["#2d271f", "#55493a", "#796953", "#9c886e", "#b4a692", "#cdc4b6", "#e2dcd5", "#f5f3f0"] },
+      "faint": { "role": "neutral", "displayName": "Muted Caption Brown", "canonical": "#786646", "tonalRamp": ["#2f291e", "#574c37", "#7d6c4f", "#a08c69", "#b8a98f", "#cfc6b4", "#e3ded3", "#f5f3ef"] },
+      "hairline": { "role": "neutral", "displayName": "Hairline", "canonical": "#dccfa9", "tonalRamp": ["#342d19", "#61542e", "#8b7841", "#b09a59", "#c4b382", "#d8cdac", "#e8e2cf", "#f7f4ee"] },
+      "hairline-deep": { "role": "neutral", "displayName": "Hairline Deep", "canonical": "#c9b98d", "tonalRamp": ["#322c1b", "#5d5232", "#857447", "#aa965f", "#bfb087", "#d4caaf", "#e6e0d0", "#f6f4ee"] },
+      "tape": { "role": "primary", "displayName": "Sign-Paint Yellow", "canonical": "#e8b023", "tonalRamp": ["#41320c", "#795d16", "#ac8420", "#d9a930", "#e2be64", "#ecd498", "#f4e6c3", "#fbf6e9"] },
+      "tape-ink": { "role": "primary", "displayName": "Tape Legible Ink", "canonical": "#6b4a00", "tonalRamp": ["#473306", "#845f0b", "#bd870f", "#edac1d", "#f1c155", "#f6d68e", "#fae7bd", "#fdf6e7"] },
+      "paint": { "role": "tertiary", "displayName": "Signal Red", "canonical": "#b6392b", "tonalRamp": ["#3a1612", "#6d2922", "#9c3b30", "#c55144", "#d37d73", "#e2a8a2", "#eeccc9", "#f9edec"] },
+      "locked": { "role": "neutral", "displayName": "Locked Card Ground", "canonical": "#211a12", "tonalRamp": ["#30271d", "#594936", "#80684d", "#a38766", "#baa58c", "#d1c3b3", "#e4dcd2", "#f5f2ef"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display (Alfa Slab One)", "purpose": "Every H1/H2 on the page. One weight only (400), already maximal — never set smaller than the section-title scale." },
+      "body": { "displayName": "Body (Archivo)", "purpose": "All prose. Kept plain so the display face stays the page's one loud voice." },
+      "hand": { "displayName": "Hand (Caveat)", "purpose": "Short tape labels only — 'Layout', 'Structure', 'yours to paint'. Never a full sentence or body copy." },
+      "label": { "displayName": "Label (Geist Mono)", "purpose": "The mono 'system voice': pills, captions, stamp text. Always uppercase, always tracked." }
+    },
+    "shadows": [
+      { "name": "resting-lift", "value": "0 20px 40px -28px rgb(24 19 13 / 0.35)", "purpose": "Panels and cards at rest (.rig__panel, .demo__chrome)." },
+      { "name": "button-hover", "value": "0 10px 18px -10px rgb(24 19 13 / 0.4)", "purpose": "Paired with translateY(-2px) rotate(-0.4deg) on button hover." },
+      { "name": "tape-rest", "value": "drop-shadow(0 5px 8px rgb(24 19 13 / 0.32))", "purpose": "Tape strip at rest — a soft, tight lift." },
+      { "name": "tape-peeled", "value": "drop-shadow(0 26px 22px rgb(24 19 13 / 0.4))", "purpose": "Tape strip lifted/hovered — a larger, softer lift paired with rotate+translate+scale(1.06)." }
+    ],
+    "motion": [
+      { "name": "reveal-settle", "value": "transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1)", "purpose": "Scroll-triggered position-settle (translateY(10px) -> none). Opacity is never gated — content is always visible by default; this transition only nudges position." },
+      { "name": "tape-lift", "value": "transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.4s ease", "purpose": "The tape strip's peel interaction on hover/press/aria-pressed." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "560px" },
+      { "name": "md", "value": "720px-780px" },
+      { "name": "lg", "value": "900px-940px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The page's only filled button colour — sign-paint yellow, ink text and border.",
+      "html": "<a class=\"ds-btn ds-btn-primary\" href=\"#\">Get the code</a>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; gap: 0.5rem; border-radius: 3px; padding: 0.72rem 1.3rem; font-family: Archivo, sans-serif; font-size: 0.95rem; font-weight: 600; cursor: pointer; text-decoration: none; transition: background-color 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease; } .ds-btn-primary { background: #e8b023; border: 1px solid #18130d; color: #18130d; } .ds-btn-primary:hover { background: #f0bd35; transform: translateY(-2px) rotate(-0.4deg); box-shadow: 0 10px 18px -10px rgba(24,19,13,0.4); } .ds-btn-primary:focus-visible { outline: 2px solid #b6392b; outline-offset: 2px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Same shape and border as primary; card-white fill instead of yellow.",
+      "html": "<a class=\"ds-btn ds-btn-secondary\" href=\"#\">Try the editor</a>",
+      "css": ".ds-btn-secondary { background: #fffdf6; border: 1px solid #18130d; color: #18130d; border-radius: 3px; padding: 0.72rem 1.3rem; font-family: Archivo, sans-serif; font-size: 0.95rem; font-weight: 600; cursor: pointer; text-decoration: none; transition: transform 0.16s ease, box-shadow 0.16s ease; } .ds-btn-secondary:hover { transform: translateY(-2px) rotate(-0.4deg); box-shadow: 0 10px 18px -10px rgba(24,19,13,0.4); } .ds-btn-secondary:focus-visible { outline: 2px solid #b6392b; outline-offset: 2px; }"
+    },
+    {
+      "name": "Tape Strip",
+      "kind": "custom",
+      "refersTo": "tape-strip",
+      "description": "The signature component: a real <button>, torn-edge clip-path, per-instance rotation, lifts on hover/press to reveal a permanent 'protected' stamp underneath that never changes.",
+      "html": "<button type=\"button\" class=\"ds-tape\" aria-pressed=\"false\" aria-label=\"Structure — locked. Press to try peeling the tape.\"><span class=\"ds-tape-label\">Structure</span></button>",
+      "css": ".ds-tape { position: relative; border: 0; padding: 0.6rem 1.4rem; cursor: pointer; background: linear-gradient(180deg, #f0c34a 0%, #e8b023 55%, #d19c17 100%); clip-path: polygon(0% 17%, 8% 7%, 15% 14%, 23% 9%, 31% 14%, 38% 9%, 46% 15%, 54% 6%, 62% 18%, 69% 4%, 77% 20%, 85% 3%, 92% 20%, 100% 4%, 100% 91%, 92% 86%, 85% 92%, 77% 84%, 69% 95%, 62% 81%, 54% 97%, 46% 80%, 38% 97%, 31% 81%, 23% 95%, 15% 84%, 8% 92%, 0% 86%); transform: rotate(-3deg); filter: drop-shadow(0 5px 8px rgba(24,19,13,0.32)); transition: transform 0.4s cubic-bezier(0.2,0.8,0.2,1), filter 0.4s ease; } .ds-tape:hover, .ds-tape[aria-pressed=\"true\"] { transform: rotate(-12deg) translate(6px, -20px) scale(1.06); filter: drop-shadow(0 26px 22px rgba(24,19,13,0.4)); } .ds-tape-label { font-family: Caveat, cursive; font-weight: 700; font-size: 1.05rem; color: #6b4a00; }"
+    },
+    {
+      "name": "Editable-Wash Card",
+      "kind": "card",
+      "refersTo": "card-edit",
+      "description": "A card marking content as client-paintable: yellow-tinted wash, dashed (not solid) outline signalling 'provisional/paintable'.",
+      "html": "<div class=\"ds-card ds-card-edit\"><span class=\"ds-card-label\">exposed — paint it</span><p>The words</p></div>",
+      "css": ".ds-card { border-radius: 8px; padding: 1.75rem; } .ds-card-edit { background: color-mix(in srgb, #e8b023 14%, #fffdf6); outline: 2px dashed color-mix(in srgb, #6b4a00 45%, transparent); outline-offset: -2px; } .ds-card-label { font-family: Caveat, cursive; font-weight: 700; font-size: 1.3rem; color: #6b4a00; display: block; margin-bottom: 1.4rem; }"
+    },
+    {
+      "name": "Locked Card",
+      "kind": "card",
+      "refersTo": "card-lock",
+      "description": "A card marking content as structurally off-limits: solid ink ground, small red hazard-stripe corner marks.",
+      "html": "<div class=\"ds-card ds-card-lock\"><span class=\"ds-card-lock-label\">taped — locked</span><p>The layout</p></div>",
+      "css": ".ds-card-lock { background: #211a12; color: rgba(244,239,228,0.92); border-radius: 8px; padding: 1.75rem; position: relative; } .ds-card-lock-label { font-family: 'Geist Mono', monospace; font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(244,239,228,0.6); display: block; margin-bottom: 1.4rem; } .ds-card-lock::before { content: ''; position: absolute; top: -8px; left: -8px; width: 46px; height: 22px; background: repeating-linear-gradient(-45deg, #b6392b 0 6px, #f4efe4 6px 12px); transform: rotate(-8deg); border-radius: 2px; }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input-field",
+      "description": "Canvas-filled (not white) so fields read as part of the paper, not a separate UI layer.",
+      "html": "<input class=\"ds-input\" type=\"text\" placeholder=\"Your name\" />",
+      "css": ".ds-input { width: 100%; border: 1px solid #c9b98d; border-radius: 5px; padding: 0.65rem 0.8rem; background: #f4efe4; color: #18130d; font-family: Archivo, sans-serif; font-size: 0.95rem; } .ds-input::placeholder { color: #786646; } .ds-input:focus-visible { outline: 2px solid #b6392b; outline-offset: 2px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Taped-Off Shop Window",
+    "overview": "Castor's whole pitch is that the owner decides exactly what a client may touch, and the system enforces the line no matter how hard someone pulls at it. Rather than argue this in copy over a dashboard screenshot — the category default — the page acts it out: a mocked homepage sits behind real masking tape, sign-paint yellow washes over the words and pictures a client may repaint, and the tape strips genuinely lift on hover or tap, revealing a permanent 'PROTECTED' stamp underneath rather than an unlocked surface. The interaction is the proof, not a decoration next to it. The palette is warm and workshop-grounded — raw canvas, near-black ink, one signal red — never the near-black-plus-neon-accent SaaS default, and never cream-plus-serif. Type pairs a heavy stencilled slab display face with a plain workhorse body face and a hand-lettered face reserved for short tape labels only; the hand face never carries a sentence. Confirmed visual rejections: software chrome of any kind (no browser bar, no dashboard mockup, no window traffic-lights), and section-numbering used to imply order that doesn't exist.",
+    "keyCharacteristics": [
+      "Real masking tape, not a metaphor spoken about — a working peel interaction with a permanent protected state underneath",
+      "Warm canvas ground, ink-dark text, one yellow editable signal, one red accent used sparingly",
+      "A heavy slab display face, a hand-lettered face rationed to short labels, a plain body face",
+      "Motion always starts from a fully visible, legible default — position can settle in, content is never hidden behind a trigger",
+      "No kickers, no eyebrows, no numbering without real sequence, no hard-offset neobrutalist shadows — this world's depth is soft and paper-lifted, not blocky"
+    ],
+    "rules": [
+      { "name": "The One Yellow Rule", "body": "Sign-paint yellow means 'editable' everywhere on the page — a tape strip, a text highlight, a button, a pill. It never appears as plain decoration; if you reach for yellow, you are marking something a client can touch.", "section": "colors" },
+      { "name": "The No-Kicker Rule", "body": "No heading on this page is preceded by an eyebrow, kicker, or overline label. This was corrected during finish review — the page originally opened five section headings with a mono kicker; all five were removed and the informational ones were folded into the following sentence instead. Do not reintroduce the pattern to a new section.", "section": "typography" },
+      { "name": "The Blur-Always Rule", "body": "Every shadow on this page has a blur radius greater than zero. A hard offset shadow (Npx Npx 0 0) is a neobrutalist costume this world never chose; if a new component wants depth, give it a soft lift, not a block double.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do keep sign-paint yellow as the only colour that means 'editable' — do not introduce a second 'this is touchable' colour.",
+      "Do give every shadow a blur radius (see The Blur-Always Rule).",
+      "Do let headings stand alone — no kicker, eyebrow, or overline label above any heading (see The No-Kicker Rule).",
+      "Do default every piece of content to visible; motion may settle a position in, but must never gate visibility behind a scroll trigger or any other JS event.",
+      "Do reserve the Caveat hand face for short tape labels; never set body copy or a full sentence in it.",
+      "Do number a sequence only when the order itself carries information the reader needs (the three-step 'how it works' flow qualifies; a feature grid of unordered capabilities does not)."
+    ],
+    "donts": [
+      "Don't add a dashboard-screenshot or browser-chrome hero — the whole point of this world is that it never shows software chrome, only the tape and the mocked page underneath it.",
+      "Don't use a flat, zero-blur offset shadow (Npx Npx 0 0) anywhere on this page; it is a neobrutalist costume this world does not wear.",
+      "Don't fake a colored border-left/border-right via an inset box-shadow on cards or list rows — this pattern was present on the 'live' version row and the form's success state in an earlier draft and was removed at finish review.",
+      "Don't apply any token in this file to components/editor/ or components/sections/ (the product UI) — that surface's plain Tailwind/slate system is separate and this file does not govern it."
+    ]
+  }
+}

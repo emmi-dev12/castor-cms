@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Bricolage_Grotesque, Geist, Geist_Mono } from "next/font/google";
+import { Alfa_Slab_One, Archivo, Caveat, Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -12,12 +12,27 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// Display face for the marketing landing page only (the editor and client
-// sites keep Geist). Self-hosted by next/font — no runtime request to Google.
-const bricolage = Bricolage_Grotesque({
+// Marketing-only faces (the editor and client sites keep Geist). Self-hosted
+// by next/font — no runtime request to Google. Alfa Slab One carries the
+// landing page's sign-painted, stencil-cut headline voice; Caveat is the
+// grease-pencil hand for short tape labels only, never body copy; Archivo is
+// the workshop order-form body face.
+const displayFace = Alfa_Slab_One({
   variable: "--font-display",
   subsets: ["latin"],
-  weight: ["800"],
+  weight: ["400"],
+});
+
+const handFace = Caveat({
+  variable: "--font-hand",
+  subsets: ["latin"],
+  weight: ["500", "700"],
+});
+
+const bodyFace = Archivo({
+  variable: "--font-body",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -36,7 +51,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${bricolage.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${displayFace.variable} ${handFace.variable} ${bodyFace.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

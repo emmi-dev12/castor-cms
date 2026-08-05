@@ -1,18 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Castor">
   <title>Castor</title>
   <!--
-    The mark is the product thesis, not decoration: three stacked bars — the
-    client's content — held on a baseline that doesn't move. The top bar is
-    offset and the accent one is short, so it reads as "pieces you can shuffle",
-    while the rule underneath stays perfectly straight and full width.
+    Marketing-only mark (the app-wide favicon in app/icon.svg is unchanged).
+    A torn strip of tape laid across an ink tile — the landing page's whole
+    idea, at logo scale: the site is the tile, the tape is the boundary.
   -->
-  <rect width="128" height="128" rx="28" fill="#0f172a"/>
-
-  <!-- content bars -->
-  <rect x="30" y="34" width="52" height="12" rx="6" fill="#f8fafc"/>
-  <rect x="30" y="56" width="68" height="12" rx="6" fill="#f8fafc" opacity="0.72"/>
-  <rect x="30" y="78" width="34" height="12" rx="6" fill="#e4a245"/>
-
-  <!-- the baseline everything rests on -->
-  <rect x="30" y="99" width="68" height="5" rx="2.5" fill="#f8fafc" opacity="0.38"/>
+  <rect width="128" height="128" rx="24" fill="#18130d"/>
+  <g transform="rotate(-10 64 64)">
+    <polygon
+      points="8,46 20,42 34,48 48,41 62,49 76,40 90,48 104,41 118,47
+              118,84 106,90 92,83 78,91 64,83 50,91 36,84 22,90 8,84"
+      fill="#e8b023"
+    />
+  </g>
+  <circle cx="30" cy="98" r="5" fill="#f4efe4" opacity="0.9"/>
 </svg>
